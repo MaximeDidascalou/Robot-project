@@ -67,27 +67,28 @@ public class Robot {
     }
 
     public void updatePosition(double timeStep){
-        double R = (WIDTH/2)*((velLeft+velRight)/(velRight-velLeft));
-        double omega = (velRight-velLeft)/WIDTH;
-        double[] ICC = {position[0] - R*Math.sin(angle), 
-                        position[1] + R*Math.cos(angle)};
-        double[][] rotMat = {
-                        {Math.cos(omega*timeStep),-Math.sin(omega*timeStep),0},
-                        {Math.sin(omega*timeStep),Math.cos(omega*timeStep),0},
-                        {0,0,1}
-                    };
-        double newX = rotMat[0][0]*(position[0] - ICC[0]) +
-                      rotMat[0][1]*(position[1] - ICC[1]) +
-                      ICC[0];
-        double newY = rotMat[1][0]*(position[0] - ICC[0]) +
-                      rotMat[1][1]*(position[1] - ICC[1]) +
-                      ICC[1];
-        angle = angle + omega*timeStep;
-        collision_check(newX, newY);
+        double newX;
+        double newY;
+
+        if (velLeft == velRight) {
+            newX = position[0] + Math.cos(angle) * velLeft * timeStep;
+            newY = position[1] + Math.sin(angle) * velLeft * timeStep;
+        } else {
+            double radius = (WHEEL_DISTANCE / 2) * ((velLeft + velRight) / (velRight - velLeft));
+            double omega = (velRight - velLeft) / WHEEL_DISTANCE;
+
+            double[] ICC = {position[0] - radius * Math.sin(angle), position[1] + radius * Math.cos(angle)};
+            newX = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
+            newY = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
+
+            angle = angle + omega * timeStep;
+        }
+
+        collisionCheck(newX, newY);
         updateSensorValues();
     }
 
-    public void collision_check(double newX, double newY){
+    public void collisionCheck(double newX, double newY){
         double minimumSquared = Math.pow(200, 2);
         double[] closest_intersect;
         double[] collision_wall;
