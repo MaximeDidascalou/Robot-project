@@ -29,6 +29,5 @@ public class Simul {
         w.r.velLeft = vl;
         w.r.velRight = vr;
         w.r.updatePosition(0.1);
-        
     }
 }

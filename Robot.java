@@ -89,6 +89,8 @@ public class Robot {
     public void collision_check(double newX, double newY){
         double minimumSquared = Math.pow(200, 2);
         double[] closest_intersect;
+        double[] collision_wall;
+        boolean slide = false; 
         for (double[] wall : environment) {
             double[] intersect = lineIntersect(position[0], position[1], newX, newY, wall[0], wall[1], wall[2], wall[3]);
             if (intersect != null) {
@@ -96,11 +98,22 @@ public class Robot {
                 if (minimumSquared > distanceSquared) {
                     minimumSquared = distanceSquared;
                     closest_intersect = intersect;
+                    collision_wall = wall;
+                    slide = true;
                 }
             }
         }
-        if (minimumSquared == Math.pow(200, 2)){
-
+        if (slide){
+            if (collision_wall[0] - collision_wall[2] == 0){ // vertical wall
+                position[0] = closest_intersect[0];
+                position[1] = newY;
+            } else { // horizontal wall
+                position[0] = newX;
+                position[1] = closest_intersect[1];
+            } 
+        } else {
+            position[0] = newX;
+            position[1] = newY;
         }
     }
 
@@ -111,7 +124,7 @@ public class Robot {
 
         double ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3))/denom;
         double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3))/denom;
-        if (ua >= 0.0f && ua <= 1.0f && ub >= 0.0f && ub <= 1.0f) {
+        if (ua > 0.0f && ua < 1.0f && ub > 0.0f && ub < 1.0f) {
               // Get the intersection point.
               return new double[]{(x1 + ua*(x2 - x1)), (y1 + ua*(y2 - y1))};
         }
