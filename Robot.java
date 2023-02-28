@@ -3,15 +3,15 @@ import java.lang.Math;
 
 public class Robot {
     private double[][] environment; //list of all the walls in the world
-    private final int NUM_SENSORS; //number of sensors
+    final int NUM_SENSORS; //number of sensors
     private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
     private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
-    private double[] sensorValues;
+    double[] sensorValues;
     private final double WIDTH; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
     private double[] position;
-    private double velRight;
-    private double velLeft;
+    double velRight;
+    double velLeft;
     private double angle;
 
     Robot(int numSensors, double maxSensorDistance, double width, double wheelDistance, double[] position, double velLeft, double velRight, double angle){
@@ -30,7 +30,7 @@ public class Robot {
     }
 
     Robot(double[] position, double angle) {
-        this(12, 2, .5, .4, position, 0.0, 0.0, angle);
+        this(12, 10, .5, .4, position, 0.0, 0.0, angle);
     }
 
     public void createSensors(){
@@ -67,6 +67,23 @@ public class Robot {
     }
 
     public void updatePosition(double timeStep){
+        double R = (WIDTH/2)*((velLeft+velRight)/(velRight-velLeft));
+        double omega = (velRight-velLeft)/WIDTH;
+        double[] ICC = {position[0] - R*Math.sin(angle), 
+                        position[1] + R*Math.cos(angle)};
+        double[][] rotMat = {
+                        {Math.cos(omega*timeStep),-Math.sin(omega*timeStep),0},
+                        {Math.sin(omega*timeStep),Math.cos(omega*timeStep),0},
+                        {0,0,1}
+                    };
+        position[0] = rotMat[0][0]*(position[0] - ICC[0]) +
+                      rotMat[0][1]*(position[1] - ICC[1]) +
+                      ICC[0];
+        position[1] = rotMat[1][0]*(position[0] - ICC[0]) +
+                      rotMat[1][1]*(position[1] - ICC[1]) +
+                      ICC[1];
+        angle = angle + omega*timeStep;
+        
 
     }
 
@@ -87,5 +104,6 @@ public class Robot {
 
     public void updateEnvironment(double[][] environment) {
         this.environment = environment;
+        updateSensorValues();
     }
 }
