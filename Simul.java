@@ -1,30 +1,30 @@
 public class Simul {
-    void simulate_timestep(World w, char input) {
+    void simulate_timestep(World w, char input, double speed_change) {
         double vl = w.r.velLeft;
         double vr = w.r.velRight;
         if (input == 'w'){
-            vl = vl + 1;
+            vl = vl + speed_change;
         }
         else if (input == 's'){
-            vl = vl - 1;
+            vl = vl - speed_change;
         }
         else if (input == 'o'){
-            vr = vr + 1;
+            vr = vr + speed_change;
         }
         else if (input == 'l'){
-            vr = vr - 1;
+            vr = vr - speed_change;
         }
         else if (input == 'x'){
             vr = 0;
             vl = 0;
         }
         else if (input == 't'){
-            vr = vr + 1;
-            vl = vl + 1;
+            vr = vr + speed_change;
+            vl = vl + speed_change;
         }
         else if (input == 'g'){
-            vr = vr - 1;
-            vl = vl + 1;
+            vr = vr - speed_change;
+            vl = vl + speed_change;
         }
         w.r.velLeft = vl;
         w.r.velRight = vr;
