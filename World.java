@@ -2,15 +2,23 @@ public class World {
     final double WIDTH;
     final double HEIGHT;
     double[][] environment;
-    Robot r;
 
-    World(double width, double height, Robot r){
+    double timeStep;
+    Robot robot;
+
+    World(double width, double height, double timeStep, Robot robot){
         this.WIDTH = width;
         this.HEIGHT = height;
         this.environment = createEnvironment();
 
-        r.updateEnvironment(environment);
-        this.r = r;
+        this.timeStep = timeStep;
+
+        robot.updateEnvironment(environment);
+        this.robot = robot;
+    }
+
+    public void step(){
+        robot.update(timeStep);
     }
 
     private double[][] createEnvironment() {
@@ -18,6 +26,7 @@ public class World {
         double[] bottom = new double[] {0, 0, WIDTH, 0};
         double[] left = new double[] {0, 0, 0, HEIGHT};
         double[] right = new double[] {WIDTH, 0, WIDTH, HEIGHT};
-        return new double[][] {bottom, top, left, right};
+        double[] wall = new double[] {2, 1, 2, 2};
+        return new double[][] {bottom, top, left, right, wall};
     }
 }
