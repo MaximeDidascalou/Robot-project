@@ -7,20 +7,20 @@ public class Robot {
     private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
     private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
     double[] sensorValues;
-    private final double WIDTH; //diameter
+    private final double DIAMETER; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
     private double[] position;
     double velRight;
     double velLeft;
     private double angle;
 
-    Robot(int numSensors, double maxSensorDistance, double width, double wheelDistance, double[] position, double velLeft, double velRight, double angle){
+    Robot(int numSensors, double maxSensorDistance, double diameter, double wheelDistance, double[] position, double velLeft, double velRight, double angle){
         this.NUM_SENSORS = numSensors;
         this.MAX_SENSOR_DISTANCE = maxSensorDistance;
         SENSOR_ANGLES = new double[numSensors];
         sensorValues = new double[numSensors];
         createSensors();
-        this.WIDTH = width;
+        this.DIAMETER = diameter;
         this.WHEEL_DISTANCE = wheelDistance;
 
         this.position = position;
@@ -63,7 +63,7 @@ public class Robot {
                 }
             }
         }
-        return Math.sqrt(minimumSquared);
+        return Math.sqrt(minimumSquared - DIAMETER/2);
     }
 
     public void updatePosition(double timeStep){
@@ -79,7 +79,7 @@ public class Robot {
 
             double[] ICC = {position[0] - radius * Math.sin(angle), position[1] + radius * Math.cos(angle)};
             newX = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
-            newY = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
+            newY = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[1];
 
             angle = angle + omega * timeStep;
         }
@@ -89,34 +89,48 @@ public class Robot {
     }
 
     public void collisionCheck(double newX, double newY){
-        double minimumSquared = Math.pow(200, 2);
-        double[] closest_intersect;
-        double[] collision_wall;
-        boolean slide = false; 
         for (double[] wall : environment) {
-            double[] intersect = lineIntersect(position[0], position[1], newX, newY, wall[0], wall[1], wall[2], wall[3]);
-            if (intersect != null) {
-                double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
-                if (minimumSquared > distanceSquared) {
-                    minimumSquared = distanceSquared;
-                    closest_intersect = intersect;
-                    collision_wall = wall;
-                    slide = true;
-                }
+            double[] intersect = closestPointToLine(wall[0], wall[1], wall[2], wall[3], newX, newY);
+            double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
+            if (distanceSquared < Math.pow(DIAMETER/2, 2)) {
+                double length = Math.sqrt(distanceSquared);
+                newX = intersect[0] + (newX - intersect[0]) / length * DIAMETER/2;
+                newY = intersect[1] + (newY - intersect[1]) / length * DIAMETER/2;
             }
         }
-        if (slide){
-            if (collision_wall[0] - collision_wall[2] == 0){ // vertical wall
-                position[0] = closest_intersect[0];
-                position[1] = newY;
-            } else { // horizontal wall
-                position[0] = newX;
-                position[1] = closest_intersect[1];
-            } 
-        } else {
-            position[0] = newX;
-            position[1] = newY;
+
+        position[0] = newX;
+        position[1] = newY;
+    }
+
+    public double[] closestPointToLine(double x1, double y1, double x2, double y2, double pointX, double pointY) {
+        double A = pointX - x1;
+        double B = pointY - y1;
+        double C = x2 - x1;
+        double D = y2 - y1;
+
+        double dot = A * C + B * D;
+        double len_sq = C * C + D * D;
+        double param = -1;
+        if (len_sq != 0) //in case of 0 length line
+            param = dot / len_sq;
+
+        double xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
         }
+        else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        }
+        else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        return new double[]{xx, yy};
     }
 
     public double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
