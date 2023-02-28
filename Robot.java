@@ -84,6 +84,7 @@ public class Robot {
                       ICC[1];
         angle = angle + omega*timeStep;
         collision_check(newX, newY);
+        updateSensorValues();
     }
 
     public void collision_check(double newX, double newY){
