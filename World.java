@@ -1,19 +1,23 @@
 public class World {
-    double width;
-    double height; // diameter or length between wheels
+    final double WIDTH;
+    final double HEIGHT;
+    double[][] environment;
     Robot r;
 
-
     World(double width, double height, Robot r){
-        this.width = width;
-        this.height = height;
-        double[] top = new double[] {height, 0, height, width};
-        double[] bottom = new double[] {0, 0, 0, width} ;
-        double[] left = new double[] {0, 0, height, 0} ;
-        double[] right = new double[] {0, width, height, width} ;
+        this.WIDTH = width;
+        this.HEIGHT = height;
+        this.environment = createEnvironment();
 
-        r.environment = new double[][] {bottom, top, left, right};
-        r.update_sensors();
+        r.updateEnvironment(environment);
         this.r = r;
+    }
+
+    private double[][] createEnvironment() {
+        double[] top = new double[] {0, HEIGHT, WIDTH, HEIGHT};
+        double[] bottom = new double[] {0, 0, WIDTH, 0};
+        double[] left = new double[] {0, 0, 0, HEIGHT};
+        double[] right = new double[] {WIDTH, 0, WIDTH, HEIGHT};
+        return new double[][] {bottom, top, left, right};
     }
 }

@@ -7,7 +7,7 @@ Need to update robot position based on w, r, angle forward and icc (find_next_lo
 Need to calculate pathway from current robot location to next robot location (draw_line) 
 Need to find next position of robot and make sure that the next position does not hit a wall or go through the wall (find_next_location, draw_line)
 */
-import java.util.Scanner; 
+import java.util.Scanner;
 import java.lang.Math;
 import java.io.*;
 import java.util.*;
@@ -26,7 +26,7 @@ class simulation{
   int[] sensor_angles = {0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330};
   double[] sensor_distance = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   //0 = empty space, 1 = wall, 2 = robot's current location
-  int space[][] = {{0,0,0,0,0,0,0,0,0,0,0},
+  int[][] space = {{0,0,0,0,0,0,0,0,0,0,0},
                   {0,0,0,0,0,0,0,0,0,0,0},
                   {0,0,1,1,1,1,1,1,1,0,0},
                   {0,0,1,0,0,0,0,0,1,0,0},
@@ -239,37 +239,37 @@ points.add(new Point2D.Double(endpointX, endpointY)); // add final endpoint
     }
   }
 }
-class Main {
-    public static void main(String[] args) {
-        //System.out.println("Hello, World!"); 
-        /*
-        Scanner in = new Scanner(System.in);
-        simulation s1 = new simulation();
-        System.out.print("Input command: ");
-        char user_input = in.next().charAt(0);
-        while (user_input != 'q'){
-          s1.control_input((char)user_input);
-          System.out.print("Input command: ");
-          user_input = in.next().charAt(0);
-        }
-        */
-        simulation r1 =  new simulation();
-        /*
-        r1.control_input('w');
-        r1.control_input('w');
-        r1.control_input('w');
-        r1.control_input('w');
-        r1.control_input('s');
-        r1.control_input('o');
-        r1.control_input('l');
-        r1.control_input('x');
-        r1.control_input('t');
-        r1.control_input('g');
-        r1.control_input('q');
-        */
-        r1.control_input('t');
-        r1.control_input('t');
-        r1.control_input('t');
-        r1.control_input('t');
-    }
-}
+//class Main {
+//    public static void main(String[] args) {
+//        //System.out.println("Hello, World!");
+//        /*
+//        Scanner in = new Scanner(System.in);
+//        simulation s1 = new simulation();
+//        System.out.print("Input command: ");
+//        char user_input = in.next().charAt(0);
+//        while (user_input != 'q'){
+//          s1.control_input((char)user_input);
+//          System.out.print("Input command: ");
+//          user_input = in.next().charAt(0);
+//        }
+//        */
+//        simulation r1 =  new simulation();
+//        /*
+//        r1.control_input('w');
+//        r1.control_input('w');
+//        r1.control_input('w');
+//        r1.control_input('w');
+//        r1.control_input('s');
+//        r1.control_input('o');
+//        r1.control_input('l');
+//        r1.control_input('x');
+//        r1.control_input('t');
+//        r1.control_input('g');
+//        r1.control_input('q');
+//        */
+//        r1.control_input('t');
+//        r1.control_input('t');
+//        r1.control_input('t');
+//        r1.control_input('t');
+//    }
+//}

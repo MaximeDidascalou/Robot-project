@@ -2,75 +2,90 @@
 import java.lang.Math;
 
 public class Robot {
-    int num_sensors;
-    double width; // diameter or length between wheels
-    double[] sensor_angles;
-    double[] sensor_values;
-    double[][] environment;
-    
-    double[] position;
-    double vel_right;
-    double vel_left;
-    double angle;
+    private double[][] environment; //list of all the walls in the world
+    private final int NUM_SENSORS; //number of sensors
+    private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
+    private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
+    private double[] sensorValues;
+    private final double WIDTH; //diameter
+    private final double WHEEL_DISTANCE; //length between wheels
+    private double[] position;
+    private double velRight;
+    private double velLeft;
+    private double angle;
 
+    Robot(int numSensors, double maxSensorDistance, double width, double wheelDistance, double[] position, double velLeft, double velRight, double angle){
+        this.NUM_SENSORS = numSensors;
+        this.MAX_SENSOR_DISTANCE = maxSensorDistance;
+        SENSOR_ANGLES = new double[numSensors];
+        sensorValues = new double[numSensors];
+        createSensors();
+        this.WIDTH = width;
+        this.WHEEL_DISTANCE = wheelDistance;
 
-    Robot(int num_sensors, double width, double[] position,
-          double vel_left, double vel_right, double angle){
-        this.num_sensors = num_sensors;
-        this.width = width;
         this.position = position;
-        this.vel_left = vel_left;
-        this.vel_right = vel_right;
+        this.velLeft = velLeft;
+        this.velRight = velRight;
         this.angle = angle;
-
-        sensor_angles = new double[num_sensors];
-        sensor_values = new double[num_sensors];
-        update_sensors();
     }
 
-    void update_sensors() {
-        // update sensor angles
-        double shift = 360 / num_sensors;
-        double total_shift = 0;
-        for (int i = 0; i < num_sensors; i++) {
-            sensor_angles[i] = angle + total_shift;
-            total_shift += shift;
-        }
+    Robot(double[] position, double angle) {
+        this(12, 2, .5, .4, position, 0.0, 0.0, angle);
+    }
 
+    public void createSensors(){
+        double angleInterval = 2*Math.PI/ NUM_SENSORS;
+
+        for(int i = 0; i < NUM_SENSORS; i++) {
+            SENSOR_ANGLES[i] = angle + i*angleInterval;
+        }
+    }
+
+    public void updateSensorValues() {
         // update sensor values
         if (environment != null){
-            for (int i = 0; i < num_sensors; i++) {
-                double rad_angle = Math.toRadians(sensor_angles[i]);
-                double x2 = position[0] + 100 * Math.cos(rad_angle);
-                double y2 = position[1] + 100 * Math.sin(rad_angle);
-                double min = 100;
-                for (int j = 0; j < environment.length; j++) {
-                    double[] intersect = lineIntersect(position[0], position[1], x2, y2, 
-                                                    environment[j][0], environment[j][1],environment[j][2],environment[j][3]);
-                    if (intersect != null){
-                        double distance = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]),2);
-                        if (min > distance) {
-                            min = distance;
-                        }
-                    }
-                }
-                sensor_values[i] = Math.sqrt(min);
+            for (int i = 0; i < NUM_SENSORS; i++) {
+                sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
             }
         }
     }
-    double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
-        double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-        if (denom == 0.0) { // Lines are parallel.
-           return null;
+
+    public double calculateSensorValue(double sensorAngle) {
+        double sensorX = position[0] + MAX_SENSOR_DISTANCE * Math.cos(sensorAngle);
+        double sensorY = position[1] + MAX_SENSOR_DISTANCE * Math.sin(sensorAngle);
+        double minimumSquared = Math.pow(MAX_SENSOR_DISTANCE, 2);
+        for (double[] wall : environment) {
+            double[] intersect = lineIntersect(position[0], position[1], sensorX, sensorY, wall[0], wall[1], wall[2], wall[3]);
+            if (intersect != null) {
+                double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
+                if (minimumSquared > distanceSquared) {
+                    minimumSquared = distanceSquared;
+                }
+            }
         }
+        return Math.sqrt(minimumSquared);
+    }
+
+    public void updatePosition(double timeStep){
+
+    }
+
+    public double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
+        double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+        // Lines are parallel.
+        if (denom == 0.0) return null;
+
         double ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3))/denom;
         double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3))/denom;
-          if (ua >= 0.0f && ua <= 1.0f && ub >= 0.0f && ub <= 1.0f) {
+        if (ua >= 0.0f && ua <= 1.0f && ub >= 0.0f && ub <= 1.0f) {
               // Get the intersection point.
-              return new double[]  {(x1 + ua*(x2 - x1)), (y1 + ua*(y2 - y1))};
-          }
+              return new double[]{(x1 + ua*(x2 - x1)), (y1 + ua*(y2 - y1))};
+        }
       
         return null;
     }
 
+    public void updateEnvironment(double[][] environment) {
+        this.environment = environment;
+    }
 }
