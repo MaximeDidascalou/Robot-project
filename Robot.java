@@ -76,15 +76,32 @@ public class Robot {
                         {Math.sin(omega*timeStep),Math.cos(omega*timeStep),0},
                         {0,0,1}
                     };
-        position[0] = rotMat[0][0]*(position[0] - ICC[0]) +
+        double newX = rotMat[0][0]*(position[0] - ICC[0]) +
                       rotMat[0][1]*(position[1] - ICC[1]) +
                       ICC[0];
-        position[1] = rotMat[1][0]*(position[0] - ICC[0]) +
+        double newY = rotMat[1][0]*(position[0] - ICC[0]) +
                       rotMat[1][1]*(position[1] - ICC[1]) +
                       ICC[1];
         angle = angle + omega*timeStep;
-        
+        collision_check(newX, newY);
+    }
 
+    public void collision_check(double newX, double newY){
+        double minimumSquared = Math.pow(200, 2);
+        double[] closest_intersect;
+        for (double[] wall : environment) {
+            double[] intersect = lineIntersect(position[0], position[1], newX, newY, wall[0], wall[1], wall[2], wall[3]);
+            if (intersect != null) {
+                double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
+                if (minimumSquared > distanceSquared) {
+                    minimumSquared = distanceSquared;
+                    closest_intersect = intersect;
+                }
+            }
+        }
+        if (minimumSquared == Math.pow(200, 2)){
+
+        }
     }
 
     public double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
