@@ -175,7 +175,6 @@ public class Robot {
     public void setWheelSpeeds(double leftSpeed, double rightSpeed) {
         wheelSpeeds[0] = clamp(leftSpeed, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED);
         wheelSpeeds[1] = clamp(rightSpeed, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED);
-        System.out.println(Arrays.toString(wheelSpeeds));
     }
 
     private static double clamp(double input, double min, double max){

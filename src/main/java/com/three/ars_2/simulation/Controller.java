@@ -18,10 +18,10 @@ public class Controller implements Runnable {
 
     public void updateRobotParameters(Robot robot, int keyPress){
         switch (keyPress) {
-            case 87 -> incrementRobotParameters(robot, 0.0, SPEED_INCREMENT); // W
-            case 83 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // S
-            case 79 -> incrementRobotParameters(robot, SPEED_INCREMENT, 0.0); // O
-            case 76 -> incrementRobotParameters(robot, -SPEED_INCREMENT, 0.0); // L
+            case 87 -> incrementRobotParameters(robot, SPEED_INCREMENT, 0.0); // W
+            case 83 -> incrementRobotParameters(robot, -SPEED_INCREMENT, 0.0); // S
+            case 79 -> incrementRobotParameters(robot, 0.0, SPEED_INCREMENT); // O
+            case 76 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // L
             case 84 -> incrementRobotParameters(robot, SPEED_INCREMENT, SPEED_INCREMENT); // T
             case 71 -> incrementRobotParameters(robot, -SPEED_INCREMENT, -SPEED_INCREMENT); // G
             case 88 -> robot.setWheelSpeeds(0, 0); // X
