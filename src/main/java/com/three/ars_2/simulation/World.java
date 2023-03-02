@@ -4,54 +4,54 @@ import com.three.ars_2.gui.GuiSettings;
 import javafx.scene.canvas.GraphicsContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class World {
-    private double height;
-    private double width;
-    private ArrayList<Robot> robots = new ArrayList<>();
+    private final double HEIGHT;
+    private final double WIDTH;
+    private final double[][] ENVIRONMENT;
+    private final ArrayList<Robot> ROBOTS = new ArrayList<>();
 
-    private double[][] environment;
-    Robot r;
     public World(double width, double height) {
-        this.height = height;
-        this.width = width;
-        double[] pos = new double[]{10,10};
-        robots.add(new Robot(pos,0,"Robot 1"));
-        environment = createEnvironment();
-        for(Robot r: this.getRobots()){
-            r.updateEnvironment(environment);
-        }
+        this.HEIGHT = height;
+        this.WIDTH = width;
+        this.ENVIRONMENT = createEnvironment();
+        double[] startPosition = new double[] {5,5};
+        ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 1"));
     }
-
-    public double getHeight() {
-        return height;
-    }
-
-    public double getWidth() {
-        return width;
-    }
-
-    public ArrayList<Robot> getRobots() {
-        return robots;
-    }
-
-    public double[][] getEnvironment(){ return environment; }
     private double[][] createEnvironment() {
-        double[] top = new double[] {0, height, width, height};
-        double[] bottom = new double[] {0, 0, width, 0};
-        double[] left = new double[] {0, 0, 0, height};
-        double[] right = new double[] {width, 0, width, height};
-        //double[] middle = new double[] {300,300,500,500};
-        return new double[][] {bottom, top, left, right};
+        List<double[]> environment = new ArrayList<>();
+
+        environment.add(new double[] {0, HEIGHT, WIDTH, HEIGHT});
+        environment.add(new double[] {0, 0, WIDTH, 0});
+        environment.add(new double[] {0, 0, 0, HEIGHT});
+        environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
+
+        environment.add(new double[] {1.0, 1.0, 5.0,3.0});
+        environment.add(new double[] {1.0, 1.0, 3.0,5.0});
+
+        return environment.toArray(new double[0][]);
     }
 
     public void draw(GraphicsContext g){
         g.setFill(GuiSettings.backgroundColor);
-        g.fillRect(0,0,getWidth()*GuiSettings.scaling,getHeight()*GuiSettings.scaling);
+        g.fillRect(0,0, getWidth()*GuiSettings.SCALING, getHeight()*GuiSettings.SCALING);
         g.setFill(GuiSettings.wall);
         double[][] environment = getEnvironment();
-        for(double[] d: environment){
-            g.fillRect(d[0]*GuiSettings.scaling,d[1]*GuiSettings.scaling,(d[2]-d[0])*GuiSettings.scaling,(d[3]-d[1])*GuiSettings.scaling);
+        for(double[] wall : environment){
+            g.strokeLine(wall[0]*GuiSettings.SCALING, wall[1]*GuiSettings.SCALING, wall[2]*GuiSettings.SCALING, wall[3]*GuiSettings.SCALING);
         }
     }
+
+    public double getHeight() {
+        return HEIGHT;
+    }
+    public double getWidth() {
+        return WIDTH;
+    }
+    public double[][] getEnvironment(){ return ENVIRONMENT; }
+    public ArrayList<Robot> getRobots() {
+        return ROBOTS;
+    }
+
 }

@@ -7,12 +7,13 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 public class Controller implements Runnable {
-    World world = new World(50,50);
-    MainScene mainScene;
-    public void setRobotParameters(double vel_r, double vel_l) {
-        for(Robot r: getWorld().getRobots()){
-            r.velLeft = vel_l;
-            r.velRight = vel_r;
+    private final double timeStep = 1.0/30;
+    private final World WORLD = new World(10,10);
+    private MainScene mainScene;
+    public void setRobotParameters(double velocityLeft, double velocityRight) {
+        for(Robot robot : getWorld().getRobots()){
+            robot.velocityLeft = velocityLeft;
+            robot.velocityRight = velocityRight;
         }
     }
 
@@ -23,7 +24,7 @@ public class Controller implements Runnable {
     }
 
     public World getWorld() {
-        return world;
+        return WORLD;
     }
 
     public void setMainScene(MainScene mainScene) {
@@ -31,8 +32,8 @@ public class Controller implements Runnable {
     }
 
     public void run() {
-        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(100), event -> {
-            runSimulation(0.1);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000*timeStep)), event -> {
+            runSimulation(timeStep);
             mainScene.drawMovables();
         }));
         timeline.setCycleCount(Animation.INDEFINITE);

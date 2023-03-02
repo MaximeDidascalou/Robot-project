@@ -18,8 +18,8 @@ public class ControlDisplay extends VBox {
         redraw();
     }
     public void redraw(){
+        vel_left.setText("vel_left: "+ robot.getVelocityLeft());
+        vel_right.setText("vel_right: "+ robot.getVelocityRight());
         angleLabel.setText("Angle: "+ robot.getDirection());
-        vel_right.setText("vel_right: "+ robot.getVelR());
-        vel_left.setText("vel_left: "+ robot.getVelL());
     }
 }

@@ -3,9 +3,7 @@ package com.three.ars_2.gui;
 import javafx.scene.paint.Color;
 
 public class GuiSettings {
-    public static final double scaling = 15;
-
-    public static final double robotRadius = scaling;
+    public static final double SCALING = 100;
     public static final double controlIncrement = 0.1;
     //Colors
     //dark blue

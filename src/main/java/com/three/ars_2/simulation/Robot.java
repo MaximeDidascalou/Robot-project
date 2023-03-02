@@ -5,43 +5,43 @@ import com.three.ars_2.gui.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 
 import java.lang.Math;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
 public class Robot {
-    private double[][] environment; //list of all the walls in the world
+    private final World WORLD; //list of all the walls in the world
     final int NUM_SENSORS; //number of sensors
     private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
     private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
     double[] sensorValues;
-    private final double WIDTH; //diameter
+    private final double DIAMETER; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
     private double[] position;
-    double velRight;
-    double velLeft;
+    double velocityRight;
+    double velocityLeft;
     private double angle;
-    private String name;
-    private final double DIAMETER; //diameter
+    private final String NAME;
 
-    Robot(int numSensors, double maxSensorDistance, double width, double wheelDistance, double[] position, double velLeft, double velRight, double angle){
+    Robot(World world, int numSensors, double maxSensorDistance, double diameter, double wheelDistance, String name, double[] position, double velocityLeft, double velocityRight, double angle){
+        this.WORLD = world;
         this.NUM_SENSORS = numSensors;
         this.MAX_SENSOR_DISTANCE = maxSensorDistance;
         SENSOR_ANGLES = new double[numSensors];
         sensorValues = new double[numSensors];
         createSensors();
-        this.WIDTH = width;
+        this.DIAMETER = diameter;
         this.WHEEL_DISTANCE = wheelDistance;
-        DIAMETER = width;
+        this.NAME = name;
         this.position = position;
-        this.velLeft = velLeft;
-        this.velRight = velRight;
+        this.velocityLeft = velocityLeft;
+        this.velocityRight = velocityRight;
         this.angle = angle;
     }
 
-    Robot(double[] position, double angle,String name) {
-        this(12, 50, .5, .4, position, 0, 0, angle);
-        this.name = name;
+    Robot(World world, double[] position, double angle, String name) {
+        this(world, 12, 5, .5, .4, name, position, 0, 0, angle);
     }
 
     public void createSensors(){
@@ -54,85 +54,46 @@ public class Robot {
 
     public void updateSensorValues() {
         // update sensor values
-        if (environment != null){
-            for (int i = 0; i < NUM_SENSORS; i++) {
-                sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
-            }
+        for (int i = 0; i < NUM_SENSORS; i++) {
+            sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
         }
     }
 
     public double calculateSensorValue(double sensorAngle) {
-        double sensorX = position[0] + MAX_SENSOR_DISTANCE * Math.cos(sensorAngle);
-        double sensorY = position[1] + MAX_SENSOR_DISTANCE * Math.sin(sensorAngle);
-        double minimumSquared = Math.pow(MAX_SENSOR_DISTANCE, 2);
-        for (double[] wall : environment) {
+        double sensorX = position[0] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.cos(sensorAngle);
+        double sensorY = position[1] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.sin(sensorAngle);
+        double minimumSquared = Math.pow(MAX_SENSOR_DISTANCE + DIAMETER/2, 2);
+        for (double[] wall : WORLD.getEnvironment()) {
             double[] intersect = lineIntersect(position[0], position[1], sensorX, sensorY, wall[0], wall[1], wall[2], wall[3]);
             if (intersect != null) {
                 double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
-                if (minimumSquared > distanceSquared) {
+                if (distanceSquared < minimumSquared) {
                     minimumSquared = distanceSquared;
                 }
             }
         }
-        return Math.sqrt(minimumSquared);
+        return Math.sqrt(minimumSquared) - DIAMETER/2;
     }
 
     public void updatePosition(double timeStep){
-        double newX;
-        double newY;
+        double[] newPosition = new double[2];
 
-        if (velLeft == velRight) {
-            newX = position[0] + Math.cos(angle) * velLeft * timeStep;
-            newY = position[1] + Math.sin(angle) * velLeft * timeStep;
+        if (velocityLeft == velocityRight) {
+            newPosition[0] = position[0] + Math.cos(angle) * velocityLeft * timeStep;
+            newPosition[1] = position[1] + Math.sin(angle) * velocityLeft * timeStep;
         } else {
-            double radius = (WHEEL_DISTANCE / 2) * ((velLeft + velRight) / (velRight - velLeft));
-            double omega = (velRight - velLeft) / WHEEL_DISTANCE;
+            double radius = (WHEEL_DISTANCE / 2) * ((velocityLeft + velocityRight) / (velocityRight - velocityLeft));
+            double omega = (velocityRight - velocityLeft) / WHEEL_DISTANCE;
 
             double[] ICC = {position[0] - radius * Math.sin(angle), position[1] + radius * Math.cos(angle)};
-            newX = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
-            newY = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[1];
+            newPosition[0] = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
+            newPosition[1] = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[1];
 
             angle = angle + omega * timeStep;
         }
 
-        collision_check(newX, newY);
-        //position[0] = newX;
-        //position[1] = newY;
+        collisionCheck(newPosition);
         updateSensorValues();
-    }
-
-    public void collision_check(double newX, double newY){
-        double minimumSquared = Math.pow(200, 2);
-        double[] closest_intersect = new double[2];
-        double[] collision_wall = new double[4];
-        boolean slide = false;
-        int collisionWallI = -1;
-        for (int i=0;i<environment.length;i++) {
-            double[] wall = environment[i];
-            double[] intersect = lineIntersect(position[0], position[1], newX, newY, wall[0], wall[1], wall[2], wall[3]);
-            if (intersect != null) {
-                double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
-                if (minimumSquared > distanceSquared) {
-                    minimumSquared = distanceSquared;
-                    closest_intersect = intersect;
-                    collision_wall = wall;
-                    slide = true;
-                    collisionWallI = i;
-                }
-            }
-        }
-        if (slide){
-            if (collision_wall[0] - collision_wall[2] == 0){ // vertical wall
-                position[0] = closest_intersect[0];
-                position[1] = newY;
-            } else { // horizontal wall
-                position[0] = newX;
-                position[1] = closest_intersect[1];
-            }
-        }else{
-            position[0] = newX;
-            position[1] = newY;
-        }
     }
 
     public double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
@@ -150,27 +111,24 @@ public class Robot {
         return null;
     }
 
-    public void updateEnvironment(double[][] environment) {
-        this.environment = environment;
-        updateSensorValues();
-    }
-
-    public void collisionCheck(double newX, double newY){
-        for (double[] wall : environment) {
-            double[] intersect = closestPointToLine(wall[0], wall[1], wall[2], wall[3], newX, newY);
-            double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
+    public void collisionCheck(double[] newPosition){
+        for (double[] wall : WORLD.getEnvironment()) {
+            double[] intersect = closestPointOnLine(wall[0], wall[1], wall[2], wall[3], newPosition[0], newPosition[1]);
+            double distanceSquared = Math.pow((intersect[0] - newPosition[0]), 2) + Math.pow((intersect[1] - newPosition[1]), 2);
             if (distanceSquared < Math.pow(DIAMETER/2, 2)) {
-                double length = Math.sqrt(distanceSquared);
-                newX = intersect[0] + (intersect[0]-newX) / length * DIAMETER/2;
-                newY = intersect[1] + (intersect[1]-newY) / length * DIAMETER/2;
+                double distance = Math.sqrt(distanceSquared);
+
+                int jumpedWall = lineIntersect(position[0], position[1], newPosition[0], newPosition[1], wall[0], wall[1], wall[2], wall[3]) != null ? -1 : 1;
+                newPosition[0] = intersect[0] + (newPosition[0] - intersect[0]) * jumpedWall / distance * DIAMETER/2;
+                newPosition[1] = intersect[1] + (newPosition[1] - intersect[1]) * jumpedWall / distance * DIAMETER/2;
             }
         }
 
-        position[0] = newX;
-        position[1] = newY;
+        position[0] = newPosition[0];
+        position[1] = newPosition[1];
     }
 
-    public double[] closestPointToLine(double x1, double y1, double x2, double y2, double pointX, double pointY) {
+    public static double[] closestPointOnLine(double x1, double y1, double x2, double y2, double pointX, double pointY) {
         double A = pointX - x1;
         double B = pointY - y1;
         double C = x2 - x1;
@@ -200,6 +158,10 @@ public class Robot {
         return new double[]{xx, yy};
     }
 
+    public String getName() {
+        return NAME;
+    }
+
     public double getX() {
         return position[0];
     }
@@ -208,24 +170,12 @@ public class Robot {
         return position[1];
     }
 
-    public String getName() {
-        return "Robot";
+    public double getVelocityLeft() {
+        return velocityLeft;
     }
 
-    public double getVelR() {
-        return velRight;
-    }
-
-    public double getVelL() {
-        return velLeft;
-    }
-
-    public ArrayList<Double> getSensorList() {
-        return (ArrayList<Double>) DoubleStream.of(SENSOR_ANGLES).boxed().collect(Collectors.toList());
-    }
-
-    public ArrayList<Double> getSensorAnglesList() {
-        return (ArrayList<Double>) DoubleStream.of(sensorValues).boxed().collect(Collectors.toList());
+    public double getVelocityRight() {
+        return velocityRight;
     }
 
     public double getSensorDistance() {
@@ -237,25 +187,27 @@ public class Robot {
     }
 
     public void draw(GraphicsContext g){
-        double radius = GuiSettings.robotRadius;
-        double x = getX()* GuiSettings.scaling;
-        double y = getY()*GuiSettings.scaling;
+        double radius = DIAMETER / 2 * GuiSettings.SCALING;
+        double x = getX() * GuiSettings.SCALING;
+        double y = getY() * GuiSettings.SCALING;
         g.setFill(GuiSettings.robotColor);
         g.fillOval(x-radius,y-radius,radius*2,radius*2);
         g.setLineWidth(1);
         g.setStroke(GuiSettings.sensorColor);
-        for(int i=0;i<getSensorList().size();i++){
-            double ang = getSensorList().get(i);
-            double value = getSensorAnglesList().get(i);
-            Vector2D v2 = new Vector2D(getDirection()+ang);
-            v2.multiply(getSensorDistance());
-            g.strokeLine(x,y,x+v2.x,y+v2.y);
-            g.strokeText(String.valueOf(Math.round(value)),x+v2.x,y+v2.y);
+        //draw sensor values
+        DecimalFormat df = new DecimalFormat();
+        df.setMaximumFractionDigits(1);
+        for(int i = 0; i < NUM_SENSORS; i++) {
+            Vector2D v2 = new Vector2D(getDirection() + SENSOR_ANGLES[i]);
+            v2.multiply(DIAMETER * GuiSettings.SCALING);
+            g.strokeLine(x,y,x + v2.x,y + v2.y);
+            g.strokeText(df.format(sensorValues[i]),x+v2.x,y+v2.y);
         }
-        for(double ang:getSensorList()){
-            Vector2D v2 = new Vector2D(getDirection()+ang);
-            v2.multiply(getSensorDistance());
-            g.strokeLine(x,y,x+v2.x,y+v2.y);
+        //draw sensor lines
+        for (int i = 0; i < NUM_SENSORS; i++) {
+            Vector2D v2 = new Vector2D(getDirection() + SENSOR_ANGLES[i]);
+            v2.multiply((sensorValues[i] + DIAMETER/2) * GuiSettings.SCALING);
+            g.strokeLine(x, y, x + v2.x, y + v2.y);
         }
         Vector2D v = new Vector2D(getDirection());
         v.multiply(radius*1);
