@@ -47,4 +47,8 @@ public class Controller implements Runnable {
     public void setMainScene(MainScene mainScene) {
         this.mainScene = mainScene;
     }
+
+    public World getWorld() {
+        return WORLD;
+    }
 }
