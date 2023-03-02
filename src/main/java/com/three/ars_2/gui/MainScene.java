@@ -16,12 +16,10 @@ public class MainScene extends Scene {
     private static double border = 100;
     private StackPane mainStackPane;
     private VBox controlVBox;
-    private World world;
+    private final World world;
     private Controller controller;
     private Canvas canvasBackground;
     private Canvas canvasMovables;
-    private double robotVel_l = 0;
-    private double robotVel_r = 0;
     private ArrayList<ControlDisplay> displays = new ArrayList<>();
 
     public MainScene(StackPane mainStackPane, Controller controller) {
@@ -61,40 +59,21 @@ public class MainScene extends Scene {
 
     public void addListeners(){
         this.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> {
-            double incr = GuiSettings.controlIncrement;
-            switch (keyEvent.getCode().getCode()) {
-                case 87 -> updateRobot(0.0, incr); // W
-                case 83 -> updateRobot(0.0, -incr); // S
-                case 79 -> updateRobot(incr, 0.0); // O
-                case 76 -> updateRobot(-incr, 0.0); // L
-                case 84 -> updateRobot(incr, incr); // T
-                case 71 -> updateRobot(-incr, -incr); // G
-                case 88 -> {
-                    robotVel_r = 0;
-                    robotVel_l = 0;
-                    controller.setRobotParameters(robotVel_r, robotVel_l);
-                    drawControlDisplays();
-                }// X
+            for(Robot robot: world.getRobots()) {
+                controller.updateRobotParameters(robot, keyEvent.getCode().getCode());
             }
         });
     }
-    public void createControlDisplays(){
-        for (Robot r:world.getRobots()){
-            ControlDisplay c = new ControlDisplay(r);
+    public void createControlDisplays() {
+        for (Robot robot :world.getRobots()) {
+            ControlDisplay c = new ControlDisplay(robot);
             displays.add(c);
             controlVBox.getChildren().add(c);
-
         }
     }
     public void drawControlDisplays(){
         for(ControlDisplay c: displays){
             c.redraw();
         }
-    }
-    private void updateRobot(double changeLeft,double changeRight){
-        robotVel_r = robotVel_r+ changeLeft;
-        robotVel_l = robotVel_l+ changeRight;
-        controller.setRobotParameters(robotVel_r,robotVel_l);
-        drawControlDisplays();
     }
 }

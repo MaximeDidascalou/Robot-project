@@ -16,7 +16,7 @@ public class World {
         this.HEIGHT = height;
         this.WIDTH = width;
         this.ENVIRONMENT = createEnvironment();
-        double[] startPosition = new double[] {5,5};
+        double[] startPosition = new double[] {3,3};
         ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 1"));
     }
     private double[][] createEnvironment() {
@@ -27,18 +27,28 @@ public class World {
         environment.add(new double[] {0, 0, 0, HEIGHT});
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
-        environment.add(new double[] {1.0, 1.0, 5.0,3.0});
-        environment.add(new double[] {1.0, 1.0, 3.0,5.0});
+        environment.add(new double[] {1, 1, 5, 1});
+        environment.add(new double[] {2, 1, 2, 5});
+        environment.add(new double[] {0, 2, 1, 2});
+        environment.add(new double[] {1, 3, 2, 3});
+        environment.add(new double[] {0, 4, 1, 4});
+        environment.add(new double[] {1, 5, 5, 5});
+        environment.add(new double[] {3, 2, 5, 1});
+        environment.add(new double[] {3, 4, 5, 5});
+        environment.add(new double[] {4, 3, 6, 2});
+        environment.add(new double[] {4, 3, 6, 4});
 
         return environment.toArray(new double[0][]);
     }
 
     public void draw(GraphicsContext g){
-        g.setFill(GuiSettings.backgroundColor);
+        g.setFill(GuiSettings.BACKGROUND_COLOR);
         g.fillRect(0,0, getWidth()*GuiSettings.SCALING, getHeight()*GuiSettings.SCALING);
-        g.setFill(GuiSettings.wall);
+        g.setFill(GuiSettings.WALL_COLOR);
         double[][] environment = getEnvironment();
         for(double[] wall : environment){
+            g.setStroke(GuiSettings.WALL_COLOR);
+            g.setLineWidth(2.0);
             g.strokeLine(wall[0]*GuiSettings.SCALING, wall[1]*GuiSettings.SCALING, wall[2]*GuiSettings.SCALING, wall[3]*GuiSettings.SCALING);
         }
     }

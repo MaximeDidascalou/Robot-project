@@ -4,22 +4,27 @@ import com.three.ars_2.simulation.Robot;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
+import java.text.DecimalFormat;
+
 public class ControlDisplay extends VBox {
-    Label angleLabel = new Label("Angle:");
-    Label vel_right = new Label("vel_right:");
-    Label vel_left = new Label("vel_left:");
-    Label name = new Label("");
     Robot robot;
+    Label angleLabel = new Label("Angle:");
+    Label leftLabel = new Label("Velocity Left:");
+    Label rightLabel = new Label("Velocity Right:");
+    Label name;
+    DecimalFormat df = new DecimalFormat();
     public ControlDisplay(Robot robot){
         this.robot = robot;
-        this.getChildren().addAll(name,angleLabel,vel_right,vel_left);
+        this.name = new Label(robot.getName());
+        this.getChildren().addAll(name,angleLabel, rightLabel, leftLabel);
         name.setText(robot.getName());
         name.getStyleClass().add("text-bold");
+        df.setMaximumFractionDigits(1);
         redraw();
     }
     public void redraw(){
-        vel_left.setText("vel_left: "+ robot.getVelocityLeft());
-        vel_right.setText("vel_right: "+ robot.getVelocityRight());
-        angleLabel.setText("Angle: "+ robot.getDirection());
+        leftLabel.setText("Velocity Left: "+ df.format(robot.getWheelSpeeds()[0]));
+        rightLabel.setText("Velocity Right: "+ df.format(robot.getWheelSpeeds()[1]));
+        angleLabel.setText("Angle: "+ df.format(((robot.getAngle()/Math.PI*180)%360+180)%360-180));
     }
 }
