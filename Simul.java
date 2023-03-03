@@ -1,6 +1,6 @@
 //public class Simul {
 //    void simulate_timestep(World w, char input, double speed_change) {
-//        double vl = w.r.velLeft;
+//        double vl = w.r.velocityLeft;
 //        double vr = w.r.velRight;
 //        if (input == 'w'){
 //            vl = vl + speed_change;
@@ -26,7 +26,7 @@
 //            vr = vr - speed_change;
 //            vl = vl + speed_change;
 //        }
-//        w.r.velLeft = vl;
+//        w.r.velocityLeft = vl;
 //        w.r.velRight = vr;
 //        w.r.updatePosition(0.1);
 //    }

@@ -11,8 +11,7 @@ public class Robot {
     private final double DIAMETER; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
     private double[] position;
-    double velRight;
-    double velLeft;
+    private double velocityLeft, velocityRight;
     private double angle;
 
     Robot(int numSensors, double maxSensorDistance, double diameter, double wheelDistance, double[] position, double velLeft, double velRight, double angle){
@@ -25,13 +24,13 @@ public class Robot {
         this.WHEEL_DISTANCE = wheelDistance;
 
         this.position = position;
-        this.velLeft = velLeft;
-        this.velRight = velRight;
+        this.velocityLeft = velLeft;
+        this.velocityRight = velRight;
         this.angle = angle;
     }
 
     Robot(double[] position, double angle) {
-        this(12, 10, .5, .4, position, 0.2, 0.2, angle);
+        this(12, 5, .5, .4, position, 0.2, 0.25, angle);
     }
 
     public void createSensors(){
@@ -45,6 +44,7 @@ public class Robot {
     public void update(double timeStep){
         updatePosition(timeStep);
         updateSensorValues();
+        System.out.println(Arrays.toString(sensorValues));
     }
 
     private void updateSensorValues() {
@@ -57,61 +57,60 @@ public class Robot {
     }
 
     private double calculateSensorValue(double sensorAngle) {
-        double sensorX = position[0] + MAX_SENSOR_DISTANCE * Math.cos(sensorAngle);
-        double sensorY = position[1] + MAX_SENSOR_DISTANCE * Math.sin(sensorAngle);
-        double minimumSquared = Math.pow(MAX_SENSOR_DISTANCE, 2);
+        double sensorX = position[0] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.cos(sensorAngle);
+        double sensorY = position[1] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.sin(sensorAngle);
+        double minimumDistanceSquared = Math.pow(MAX_SENSOR_DISTANCE + DIAMETER/2, 2);
         for (double[] wall : environment) {
             double[] intersect = lineIntersect(position[0], position[1], sensorX, sensorY, wall[0], wall[1], wall[2], wall[3]);
             if (intersect != null) {
                 double distanceSquared = Math.pow((intersect[1] - position[1]), 2) + Math.pow((intersect[0] - position[0]), 2);
-                if (minimumSquared > distanceSquared) {
-                    minimumSquared = distanceSquared;
+                if (distanceSquared < minimumDistanceSquared) {
+                    minimumDistanceSquared = distanceSquared;
                 }
             }
         }
-        return Math.sqrt(minimumSquared) - DIAMETER/2;
+        return Math.sqrt(minimumDistanceSquared) - DIAMETER/2;
     }
 
     private void updatePosition(double timeStep){
-        double newX;
-        double newY;
+        double[] newPosition = new double[2];
 
-        if (velLeft == velRight) {
-            newX = position[0] + Math.cos(angle) * velLeft * timeStep;
-            newY = position[1] + Math.sin(angle) * velLeft * timeStep;
+        if (velocityLeft == velocityRight) {
+            newPosition[0] = position[0] + Math.cos(angle) * velocityLeft * timeStep;
+            newPosition[1] = position[1] + Math.sin(angle) * velocityLeft * timeStep;
         } else {
-            double radius = (WHEEL_DISTANCE / 2) * ((velLeft + velRight) / (velRight - velLeft));
-            double omega = (velRight - velLeft) / WHEEL_DISTANCE;
+            double radius = (WHEEL_DISTANCE / 2) * ((velocityLeft + velocityRight) / (velocityRight - velocityLeft));
+            double omega = (velocityRight - velocityLeft) / WHEEL_DISTANCE;
 
             double[] ICC = {position[0] - radius * Math.sin(angle), position[1] + radius * Math.cos(angle)};
-            newX = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
-            newY = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[1];
+            newPosition[0] = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
+            newPosition[1] = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[1];
 
             angle = angle + omega * timeStep;
         }
 
-        collisionCheck(newX, newY);
+        collisionCheck(newPosition);
     }
 
-    public void collisionCheck(double newX, double newY){
+    private void collisionCheck(double[] newPosition){
         for (double[] wall : environment) {
-            double[] intersect = closestPointToLine(wall[0], wall[1], wall[2], wall[3], newX, newY);
-            double distanceSquared = Math.pow((intersect[0] - newX), 2) + Math.pow((intersect[1] - newY), 2);
+            double[] intersect = closestPointToLine(wall[0], wall[1], wall[2], wall[3], newPosition[0], newPosition[1]);
+            double distanceSquared = Math.pow((intersect[0] - newPosition[0]), 2) + Math.pow((intersect[1] - newPosition[1]), 2);
             if (distanceSquared < Math.pow(DIAMETER/2, 2)) {
                 double distance = Math.sqrt(distanceSquared);
 
-                newX = intersect[0] + (newX - intersect[0]) / distance * DIAMETER/2;
-                newY = intersect[1] + (newY - intersect[1]) / distance * DIAMETER/2;
+                newPosition[0] = intersect[0] + (newPosition[0] - intersect[0]) / distance * DIAMETER/2;
+                newPosition[1] = intersect[1] + (newPosition[1] - intersect[1]) / distance * DIAMETER/2;
             }
         }
 
-        position[0] = newX;
-        position[1] = newY;
+        position[0] = newPosition[0];
+        position[1] = newPosition[1];
     }
 
-    public static double[] closestPointToLine(double x1, double y1, double x2, double y2, double pointX, double pointY) {
-        double A = pointX - x1;
-        double B = pointY - y1;
+    public static double[] closestPointToLine(double x1, double y1, double x2, double y2, double px, double py) {
+        double A = px - x1;
+        double B = py - y1;
         double C = x2 - x1;
         double D = y2 - y1;
 
