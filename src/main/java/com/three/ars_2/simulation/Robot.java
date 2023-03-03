@@ -24,10 +24,13 @@ public class Robot {
     private double[] position;
     private double[] wheelSpeeds;
     private double angle;
+    private boolean[][] dustIsCollected;
+    private int totalDustCollected;
+    private final double DUST_RESOLUTION = 1.0/5;
 
     Robot(World world, int numSensors, double maxSensorDistance, double diameter, double wheelDistance, double maxWheelSpeed, boolean doAcceleration, double maxAcceleration, String name, double[] position, double[] wheelSpeeds, double angle){
         this.WORLD = world;
-        this.BRAIN = new Brain(new int[]{numSensors, 4, 2});
+        this.BRAIN = new Brain(new int[]{numSensors, 2});
         this.NUM_SENSORS = numSensors;
         this.MAX_SENSOR_DISTANCE = maxSensorDistance;
         SENSOR_ANGLES = new double[numSensors];
@@ -43,6 +46,8 @@ public class Robot {
         this.position = position;
         this.wheelSpeeds = wheelSpeeds;
         this.angle = angle;
+
+        this.dustIsCollected = new boolean[(int)(world.getWidth()/DUST_RESOLUTION)][(int)(world.getHeight()/DUST_RESOLUTION)];
     }
 
     Robot(World world, double[] position, double angle, String name) {
@@ -53,7 +58,7 @@ public class Robot {
         this(world, new double[]{Math.random()* world.getWidth(), Math.random()*world.getHeight()}, Math.random()*Math.PI*2, name);
     }
 
-    public void createSensors(){
+    private void createSensors(){
         double angleInterval = 2*Math.PI/ NUM_SENSORS;
 
         for(int i = 0; i < NUM_SENSORS; i++) {
@@ -68,7 +73,7 @@ public class Robot {
         }
     }
 
-    public double calculateSensorValue(double sensorAngle) {
+    private double calculateSensorValue(double sensorAngle) {
         double sensorX = position[0] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.cos(sensorAngle);
         double sensorY = position[1] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.sin(sensorAngle);
         double minimumSquared = Math.pow(MAX_SENSOR_DISTANCE + DIAMETER/2, 2);
@@ -87,6 +92,7 @@ public class Robot {
     public void update(double timeStep){
         updateWheelSpeeds(timeStep);
         updatePosition(timeStep);
+        updateDustCollection();
         updateSensorValues();
     }
 
@@ -113,6 +119,23 @@ public class Robot {
         }
 
         collisionCheck(newPosition);
+    }
+
+    private void updateDustCollection(){
+        for (int i = (int)((position[0] - DIAMETER/2)/DUST_RESOLUTION); i < Math.min((int)((position[0] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected.length); i++) {
+            for (int j = (int)((position[1] - DIAMETER/2)/DUST_RESOLUTION); j < Math.min((int)((position[1] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected[i].length); j++) {
+                if(!dustIsCollected[i][j] && dustDistanceSquared(i, j) < Math.pow(DIAMETER/2,2)){
+                    dustIsCollected[i][j] = true;
+                    totalDustCollected++;
+                }
+            }
+        }
+    }
+
+    private double dustDistanceSquared(int i, int j) {
+        double dustX = (i + 0.5)*DUST_RESOLUTION;
+        double dustY = (j + 0.5)*DUST_RESOLUTION;
+        return Math.pow(dustX - position[0],2) + Math.pow((dustY)-position[1],2);
     }
 
     private void collisionCheck(double[] newPosition){
@@ -183,12 +206,23 @@ public class Robot {
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(1);
 
+        //draw dust
+        g.setFill(GuiSettings.DUST_COLOR);
+        for (int i = 0; i < dustIsCollected.length; i++) {
+            for (int j = 0; j < dustIsCollected[i].length; j++) {
+                if(!dustIsCollected[i][j]){
+                    g.fillOval((i*DUST_RESOLUTION + DUST_RESOLUTION/2)*GuiSettings.SCALING - 2, (j*DUST_RESOLUTION + DUST_RESOLUTION/2)*GuiSettings.SCALING - 2, 4, 4);
+                }
+            }
+        }
+
         //draw sensor lines
+        g.setStroke(GuiSettings.SENSOR_COLOR);
+        g.setLineWidth(1.0);
+
         for (int i = 0; i < NUM_SENSORS; i++) {
             Vector2D v2 = new Vector2D(angle + SENSOR_ANGLES[i]);
             v2.multiply((sensorValues[i] + DIAMETER/2) * GuiSettings.SCALING);
-            g.setStroke(GuiSettings.SENSOR_COLOR);
-            g.setLineWidth(1.0);
             g.strokeLine(x, y, x + v2.x, y + v2.y);
         }
 
@@ -217,6 +251,10 @@ public class Robot {
 
     public String getName() {
         return NAME;
+    }
+
+    public int getTotalDustCollected() {
+        return totalDustCollected;
     }
 
     public double[] getPosition() {
