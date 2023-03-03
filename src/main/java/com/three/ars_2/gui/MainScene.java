@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class MainScene extends Scene {
-    private static double border = 100;
+    private static double border = 128;
     private StackPane mainStackPane;
     private VBox controlVBox;
     private final World world;
@@ -52,8 +52,8 @@ public class MainScene extends Scene {
     public void drawMovables(){
         GraphicsContext g = canvasMovables.getGraphicsContext2D();
         g.clearRect(0,0,world.getWidth()*GuiSettings.SCALING,world.getHeight()*GuiSettings.SCALING);
-        for (Robot r:world.getRobots()){
-            r.draw(g);
+        for (Robot robot :world.getRobots()){
+            robot.draw(g);
         }
     }
 

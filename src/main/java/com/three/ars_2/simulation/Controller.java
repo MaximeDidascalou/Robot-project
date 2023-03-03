@@ -13,7 +13,7 @@ public class Controller implements Runnable {
     private MainScene mainScene;
 
     private void incrementRobotParameters(Robot robot, double incrementLeft, double incrementRight){
-        robot.setWheelSpeeds( robot.getWheelSpeeds()[0] + incrementLeft, robot.getWheelSpeeds()[1] + incrementRight);
+        robot.setWheelSpeeds( robot.getWheelSpeeds()[0] + incrementLeft, robot.getWheelSpeeds()[1] + incrementRight, TIME_STEP);
     }
 
     public void updateRobotParameters(Robot robot, int keyPress){
@@ -24,14 +24,12 @@ public class Controller implements Runnable {
             case 76 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // L
             case 84 -> incrementRobotParameters(robot, SPEED_INCREMENT, SPEED_INCREMENT); // T
             case 71 -> incrementRobotParameters(robot, -SPEED_INCREMENT, -SPEED_INCREMENT); // G
-            case 88 -> robot.setWheelSpeeds(0, 0); // X
+            case 88 -> robot.setWheelSpeeds(0, 0, TIME_STEP); // X
         }
     }
 
     public void runSimulation(double timeStep) {
-        for(Robot robot : WORLD.getRobots()){
-            robot.update(timeStep);
-        }
+        WORLD.update(timeStep);
     }
 
     public void run() {

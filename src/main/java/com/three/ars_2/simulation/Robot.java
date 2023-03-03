@@ -9,7 +9,8 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 
 public class Robot {
-    private final World WORLD; //list of all the walls in the world
+    private final World WORLD; //reference to the world it is in
+    private final Brain BRAIN;
     final int NUM_SENSORS; //number of sensors
     private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
     private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
@@ -17,13 +18,16 @@ public class Robot {
     private final double DIAMETER; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
     private final double MAX_WHEEL_SPEED;
+    private final boolean DO_ACCELERATION;
+    private final double MAX_ACCELERATION;
+    private final String NAME;
     private double[] position;
     private double[] wheelSpeeds;
     private double angle;
-    private final String NAME;
 
-    Robot(World world, int numSensors, double maxSensorDistance, double diameter, double wheelDistance, double maxWheelSpeed, String name, double[] position, double[] wheelSpeeds, double angle){
+    Robot(World world, int numSensors, double maxSensorDistance, double diameter, double wheelDistance, double maxWheelSpeed, boolean doAcceleration, double maxAcceleration, String name, double[] position, double[] wheelSpeeds, double angle){
         this.WORLD = world;
+        this.BRAIN = new Brain(new int[]{numSensors, 4, 2});
         this.NUM_SENSORS = numSensors;
         this.MAX_SENSOR_DISTANCE = maxSensorDistance;
         SENSOR_ANGLES = new double[numSensors];
@@ -32,6 +36,8 @@ public class Robot {
         this.DIAMETER = diameter;
         this.WHEEL_DISTANCE = wheelDistance;
         this.MAX_WHEEL_SPEED = maxWheelSpeed;
+        this.DO_ACCELERATION = doAcceleration;
+        this.MAX_ACCELERATION = maxAcceleration;
         this.NAME = name;
 
         this.position = position;
@@ -40,7 +46,11 @@ public class Robot {
     }
 
     Robot(World world, double[] position, double angle, String name) {
-        this(world, 12, 5, .5, .4, 1.0, name, position, new double[]{0.0, 0.0}, angle);
+        this(world, 12, 2, .5, .4, 1.0, true, 0.5, name, position, new double[]{0.0, 0.0}, angle);
+    }
+
+    Robot(World world, String name) {
+        this(world, new double[]{Math.random()* world.getWidth(), Math.random()*world.getHeight()}, Math.random()*Math.PI*2, name);
     }
 
     public void createSensors(){
@@ -75,6 +85,17 @@ public class Robot {
     }
 
     public void update(double timeStep){
+        updateWheelSpeeds(timeStep);
+        updatePosition(timeStep);
+        updateSensorValues();
+    }
+
+    public void updateWheelSpeeds(double timeStep){
+        double[] newWheelSpeeds = BRAIN.evaluate(sensorValues);
+        setWheelSpeeds(newWheelSpeeds[0], newWheelSpeeds[1], timeStep);
+    }
+
+    public void updatePosition(double timeStep){
         double[] newPosition = new double[2];
 
         if (Math.abs(wheelSpeeds[0] - wheelSpeeds[1]) < 0.000001) {
@@ -92,22 +113,6 @@ public class Robot {
         }
 
         collisionCheck(newPosition);
-        updateSensorValues();
-    }
-
-    private static double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
-        double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-        // Lines are parallel.
-        if (denom == 0.0) return null;
-
-        double ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3))/denom;
-        double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3))/denom;
-        if (ua >= 0.0f && ua <= 1.0f && ub >= 0.0f && ub <= 1.0f) {
-            // Get the intersection point.
-            return new double[]{(x1 + ua*(x2 - x1)), (y1 + ua*(y2 - y1))};
-        }
-
-        return null;
     }
 
     private void collisionCheck(double[] newPosition){
@@ -156,33 +161,19 @@ public class Robot {
         return new double[]{xx, yy};
     }
 
-    public String getName() {
-        return NAME;
-    }
+    private static double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
+        double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+        // Lines are parallel.
+        if (denom == 0.0) return null;
 
-    public double[] getPosition() {
-        return position;
-    }
+        double ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3))/denom;
+        double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3))/denom;
+        if (ua >= 0.0f && ua <= 1.0f && ub >= 0.0f && ub <= 1.0f) {
+            // Get the intersection point.
+            return new double[]{(x1 + ua*(x2 - x1)), (y1 + ua*(y2 - y1))};
+        }
 
-    public double[] getWheelSpeeds() {
-        return wheelSpeeds;
-    }
-
-    public void setWheelSpeeds(double[] wheelSpeeds) {
-        this.wheelSpeeds = wheelSpeeds;
-    }
-
-    public void setWheelSpeeds(double leftSpeed, double rightSpeed) {
-        wheelSpeeds[0] = clamp(leftSpeed, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED);
-        wheelSpeeds[1] = clamp(rightSpeed, -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED);
-    }
-
-    private static double clamp(double input, double min, double max){
-        return Math.min(Math.max(input, min), max);
-    }
-
-    public double getAngle() {
-        return angle;
+        return null;
     }
 
     public void draw(GraphicsContext g){
@@ -200,6 +191,7 @@ public class Robot {
             g.setLineWidth(1.0);
             g.strokeLine(x, y, x + v2.x, y + v2.y);
         }
+
         //draw sensor values
         for(int i = 0; i < NUM_SENSORS; i++) {
             Vector2D v2 = new Vector2D(angle + SENSOR_ANGLES[i]);
@@ -207,10 +199,12 @@ public class Robot {
             g.strokeLine(x,y,x + v2.x,y + v2.y);
             g.strokeText(df.format(sensorValues[i]),x+v2.x,y+v2.y);
         }
+
         //draw body
         g.setFill(GuiSettings.ROBOT_COLOR);
         g.fillOval(x-radius,y-radius,radius*2,radius*2);
         g.setLineWidth(1);
+
         //draw head
         Vector2D v = new Vector2D(angle);
         v.multiply(radius*1);
@@ -219,5 +213,41 @@ public class Robot {
         g.setStroke(GuiSettings.DIRECTION_COLOR);
         g.setLineWidth(2.0);
         g.strokeLine(x, y, x + v.x, y + v.y);
+    }
+
+    public String getName() {
+        return NAME;
+    }
+
+    public double[] getPosition() {
+        return position;
+    }
+
+    public double[] getWheelSpeeds() {
+        return wheelSpeeds;
+    }
+
+    public void setWheelSpeeds(double leftSpeed, double rightSpeed, double timeStep) {
+        if(DO_ACCELERATION){
+            wheelSpeeds[0] = clamp(leftSpeed, wheelSpeeds[0] - MAX_ACCELERATION*timeStep, wheelSpeeds[0] + MAX_ACCELERATION*timeStep);
+            wheelSpeeds[1] = clamp(rightSpeed, wheelSpeeds[1] - MAX_ACCELERATION*timeStep, wheelSpeeds[1] + MAX_ACCELERATION*timeStep);
+        } else {
+            wheelSpeeds[0] = leftSpeed;
+            wheelSpeeds[1] = rightSpeed;
+        }
+        clampWheelSpeeds();
+    }
+
+    private void clampWheelSpeeds(){
+        wheelSpeeds[0] = clamp(wheelSpeeds[0], -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED);
+        wheelSpeeds[1] = clamp(wheelSpeeds[1], -MAX_WHEEL_SPEED, MAX_WHEEL_SPEED);
+    }
+
+    private static double clamp(double input, double min, double max){
+        return Math.min(Math.max(input, min), max);
+    }
+
+    public double getAngle() {
+        return angle;
     }
 }

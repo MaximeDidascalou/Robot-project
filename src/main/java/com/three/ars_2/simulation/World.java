@@ -10,14 +10,18 @@ public class World {
     private final double HEIGHT;
     private final double WIDTH;
     private final double[][] ENVIRONMENT;
-    private final ArrayList<Robot> ROBOTS = new ArrayList<>();
+//    private final ArrayList<Robot> ROBOTS = new ArrayList<>();
+    private Population population;
 
     public World(double width, double height) {
         this.HEIGHT = height;
         this.WIDTH = width;
         this.ENVIRONMENT = createEnvironment();
         double[] startPosition = new double[] {3,3};
-        ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 1"));
+        this.population = new Population(this, 1);
+//        ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 1"));
+//        ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 2"));
+
     }
     private double[][] createEnvironment() {
         List<double[]> environment = new ArrayList<>();
@@ -41,6 +45,12 @@ public class World {
         return environment.toArray(new double[0][]);
     }
 
+    public void update(double timeStep){
+        for(Robot robot: population.getRobots()){
+            robot.update(timeStep);
+        }
+    }
+
     public void draw(GraphicsContext g){
         g.setFill(GuiSettings.BACKGROUND_COLOR);
         g.fillRect(0,0, getWidth()*GuiSettings.SCALING, getHeight()*GuiSettings.SCALING);
@@ -59,9 +69,10 @@ public class World {
     public double getWidth() {
         return WIDTH;
     }
-    public double[][] getEnvironment(){ return ENVIRONMENT; }
-    public ArrayList<Robot> getRobots() {
-        return ROBOTS;
-    }
 
+    public double[][] getEnvironment(){ return ENVIRONMENT; }
+
+    public List<Robot> getRobots() {
+        return population.getRobots();
+    }
 }
