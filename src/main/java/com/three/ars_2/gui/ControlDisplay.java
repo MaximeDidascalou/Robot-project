@@ -12,13 +12,13 @@ public class ControlDisplay extends VBox {
     Label leftLabel = new Label("Velocity Left:");
     Label rightLabel = new Label("Velocity Right:");
     Label dustLabel = new Label("Dust collected:");
-    Label collisionLabel = new Label("Time in wall:");
+    Label collisionLabel = new Label("Ticks in wall:");
     Label name;
     DecimalFormat df = new DecimalFormat();
     public ControlDisplay(Robot robot){
         this.robot = robot;
         this.name = new Label(robot.getName());
-        this.getChildren().addAll(name,leftLabel, rightLabel, angleLabel, dustLabel);
+        this.getChildren().addAll(name,leftLabel, rightLabel, angleLabel, dustLabel, collisionLabel);
         name.setText(robot.getName());
         name.getStyleClass().add("text-bold");
         df.setMaximumFractionDigits(1);
@@ -29,5 +29,6 @@ public class ControlDisplay extends VBox {
         rightLabel.setText("Velocity Right: "+ df.format(robot.getWheelSpeeds()[1]));
         angleLabel.setText("Angle: "+ df.format(((robot.getAngle()/Math.PI*180)%360+180)%360-180));
         dustLabel.setText("Dust collected: " + robot.getTotalDustCollected());
+        collisionLabel.setText("Ticks in wall: " + robot.getTicksInWall());
     }
 }

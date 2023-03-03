@@ -7,13 +7,12 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 public class Controller implements Runnable {
-    private final double TIME_STEP = 1.0/30;
     private final double SPEED_INCREMENT = 0.1;
-    private final World WORLD = new World(6,6);
+    private final World WORLD = new World();
     private MainScene mainScene;
 
     private void incrementRobotParameters(Robot robot, double incrementLeft, double incrementRight){
-        robot.setWheelSpeeds( robot.getWheelSpeeds()[0] + incrementLeft, robot.getWheelSpeeds()[1] + incrementRight, TIME_STEP);
+        robot.setWheelSpeeds( robot.getWheelSpeeds()[0] + incrementLeft, robot.getWheelSpeeds()[1] + incrementRight);
     }
 
     public void updateRobotParameters(Robot robot, int keyPress){
@@ -24,17 +23,24 @@ public class Controller implements Runnable {
             case 76 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // L
             case 84 -> incrementRobotParameters(robot, SPEED_INCREMENT, SPEED_INCREMENT); // T
             case 71 -> incrementRobotParameters(robot, -SPEED_INCREMENT, -SPEED_INCREMENT); // G
-            case 88 -> robot.setWheelSpeeds(0, 0, TIME_STEP); // X
+            case 88 -> robot.setWheelSpeeds(0, 0); // X
         }
     }
 
-    public void runSimulation(double timeStep) {
-        WORLD.update(timeStep);
+    public void runSimulation() {
+        WORLD.update();
+    }
+
+    public void runEvolution(){
+        WORLD.doEvolution(64, 1000, 30);
     }
 
     public void run() {
-        Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* TIME_STEP)), event -> {
-            runSimulation(TIME_STEP);
+        WORLD.setTimeStep(1.0/10);
+        runEvolution();
+        WORLD.setTimeStep(1.0/60);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* WORLD.getTimeStep())), event -> {
+            runSimulation();
             mainScene.drawMovables();
             mainScene.drawControlDisplays();
         }));

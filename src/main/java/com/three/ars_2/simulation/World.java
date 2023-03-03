@@ -7,20 +7,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class World {
+    private double timeStep;
     private final double HEIGHT;
     private final double WIDTH;
     private final double[][] ENVIRONMENT;
-//    private final ArrayList<Robot> ROBOTS = new ArrayList<>();
-    private Population population;
+    private final Population POPULATION;
 
-    public World(double width, double height) {
-        this.HEIGHT = height;
-        this.WIDTH = width;
+    public World() {
+        this.timeStep = 1.0/10;
+        this.HEIGHT = 6;
+        this.WIDTH = 6;
         this.ENVIRONMENT = createEnvironment();
-        double[] startPosition = new double[] {3,3};
-        this.population = new Population(this, 1);
-//        ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 1"));
-//        ROBOTS.add(new Robot(this, startPosition,0.0,"Robot 2"));
+        this.POPULATION = new Population(this);
 
     }
     private double[][] createEnvironment() {
@@ -31,23 +29,50 @@ public class World {
         environment.add(new double[] {0, 0, 0, HEIGHT});
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
+
         environment.add(new double[] {1, 1, 5, 1});
-        environment.add(new double[] {2, 1, 2, 5});
-        environment.add(new double[] {0, 2, 1, 2});
-        environment.add(new double[] {1, 3, 2, 3});
-        environment.add(new double[] {0, 4, 1, 4});
         environment.add(new double[] {1, 5, 5, 5});
-        environment.add(new double[] {3, 2, 5, 1});
-        environment.add(new double[] {3, 4, 5, 5});
-        environment.add(new double[] {4, 3, 6, 2});
-        environment.add(new double[] {4, 3, 6, 4});
+        environment.add(new double[] {2, 2, 2, 4});
+
+//        environment.add(new double[] {1, 1, 5, 1});
+//        environment.add(new double[] {2, 1, 2, 5});
+//        environment.add(new double[] {0, 2, 1, 2});
+//        environment.add(new double[] {1, 3, 2, 3});
+//        environment.add(new double[] {0, 4, 1, 4});
+//        environment.add(new double[] {1, 5, 5, 5});
+//        environment.add(new double[] {2, 3, 5, 1});
+//        environment.add(new double[] {2, 3, 5, 5});
+//        environment.add(new double[] {4, 3, 6, 2});
+//        environment.add(new double[] {4, 3, 6, 4});
 
         return environment.toArray(new double[0][]);
     }
 
-    public void update(double timeStep){
-        for(Robot robot: population.getRobots()){
-            robot.update(timeStep);
+    public void update(){
+        for(Robot robot: POPULATION.getRobots()){
+            robot.update();
+        }
+    }
+
+    public void doEvolution(int numIndividuals, int numGenerations, double timePerGeneration){
+        POPULATION.populate(numIndividuals);
+        for (int i = 0; i < numGenerations; i++) {
+            for (int j = 0; j < timePerGeneration/ timeStep; j++) {
+                update();
+            }
+            POPULATION.commitGenocide(32);
+            for(Robot robot: POPULATION.getRobots()){
+                robot.reset();
+            }
+            POPULATION.doTheSexy();
+        }
+
+        for (int i = 0; i < timePerGeneration/ timeStep; i++) {
+            update();
+        }
+        POPULATION.commitGenocide(1);
+        for(Robot robot: POPULATION.getRobots()){
+            robot.reset();
         }
     }
 
@@ -63,6 +88,14 @@ public class World {
         }
     }
 
+    public double getTimeStep(){
+        return timeStep;
+    }
+
+    public void setTimeStep(double timeStep){
+        this.timeStep = timeStep;
+    }
+
     public double getHeight() {
         return HEIGHT;
     }
@@ -73,6 +106,6 @@ public class World {
     public double[][] getEnvironment(){ return ENVIRONMENT; }
 
     public List<Robot> getRobots() {
-        return population.getRobots();
+        return POPULATION.getRobots();
     }
 }

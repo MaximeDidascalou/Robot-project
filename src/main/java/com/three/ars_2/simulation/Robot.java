@@ -8,54 +8,57 @@ import java.lang.Math;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
-public class Robot {
+public class Robot implements Comparable<Robot>{
     private final World WORLD; //reference to the world it is in
-    private final Brain BRAIN;
-    final int NUM_SENSORS; //number of sensors
+    private final String NAME;
+    private final NeuralNet NEURAL_NET;
+    private final int NUM_SENSORS; //number of sensors
     private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
     private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
-    double[] sensorValues;
     private final double DIAMETER; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
     private final double MAX_WHEEL_SPEED;
     private final boolean DO_ACCELERATION;
     private final double MAX_ACCELERATION;
-    private final String NAME;
+    private final double DUST_RESOLUTION;
+
+
     private double[] position;
-    private double[] wheelSpeeds;
     private double angle;
+    private double[] wheelSpeeds;
+    double[] sensorValues;
     private boolean[][] dustIsCollected;
     private int totalDustCollected;
-    private final double DUST_RESOLUTION = 1.0/5;
+    private int ticksInWall;
 
-    Robot(World world, int numSensors, double maxSensorDistance, double diameter, double wheelDistance, double maxWheelSpeed, boolean doAcceleration, double maxAcceleration, String name, double[] position, double[] wheelSpeeds, double angle){
+
+    Robot(World world, String name, NeuralNet neuralNet, double[] position, double angle){
         this.WORLD = world;
-        this.BRAIN = new Brain(new int[]{numSensors, 2});
-        this.NUM_SENSORS = numSensors;
-        this.MAX_SENSOR_DISTANCE = maxSensorDistance;
-        SENSOR_ANGLES = new double[numSensors];
-        sensorValues = new double[numSensors];
-        createSensors();
-        this.DIAMETER = diameter;
-        this.WHEEL_DISTANCE = wheelDistance;
-        this.MAX_WHEEL_SPEED = maxWheelSpeed;
-        this.DO_ACCELERATION = doAcceleration;
-        this.MAX_ACCELERATION = maxAcceleration;
         this.NAME = name;
+        this.NEURAL_NET = neuralNet;
+        this.NUM_SENSORS = 12;
+        this.MAX_SENSOR_DISTANCE = 2.0;
+        this.SENSOR_ANGLES = new double[NUM_SENSORS];
+        this.sensorValues = new double[NUM_SENSORS];
+        this.createSensors();
+        this.DIAMETER = 0.5;
+        this.WHEEL_DISTANCE = 0.4;
+        this.MAX_WHEEL_SPEED = 1.0;
+        this.DO_ACCELERATION = false;
+        this.MAX_ACCELERATION = 0.5;
+        this.DUST_RESOLUTION = 1.0/8;
+        this.dustIsCollected = new boolean[(int)(WORLD.getWidth()/DUST_RESOLUTION)][(int)(WORLD.getHeight()/DUST_RESOLUTION)];
 
-        this.position = position;
-        this.wheelSpeeds = wheelSpeeds;
-        this.angle = angle;
-
-        this.dustIsCollected = new boolean[(int)(world.getWidth()/DUST_RESOLUTION)][(int)(world.getHeight()/DUST_RESOLUTION)];
+        this.reset(position, angle);
     }
 
-    Robot(World world, double[] position, double angle, String name) {
-        this(world, 12, 2, .5, .4, 1.0, true, 0.5, name, position, new double[]{0.0, 0.0}, angle);
+    Robot(World world, String name, NeuralNet neuralNet) {
+        this(world, name, neuralNet, new double[]{world.getWidth()/2, world.getHeight()/2}, 0.0);
     }
 
+    //Construct robot with random NN
     Robot(World world, String name) {
-        this(world, new double[]{Math.random()* world.getWidth(), Math.random()*world.getHeight()}, Math.random()*Math.PI*2, name);
+        this(world, name, new NeuralNet(new int[]{12, 2}, false));
     }
 
     private void createSensors(){
@@ -64,6 +67,13 @@ public class Robot {
         for(int i = 0; i < NUM_SENSORS; i++) {
             SENSOR_ANGLES[i] = angle + i*angleInterval;
         }
+    }
+
+    public void update(){
+        updateWheelSpeeds();
+        updatePosition();
+        updateDustCollection();
+        updateSensorValues();
     }
 
     public void updateSensorValues() {
@@ -89,33 +99,26 @@ public class Robot {
         return Math.sqrt(minimumSquared) - DIAMETER/2;
     }
 
-    public void update(double timeStep){
-        updateWheelSpeeds(timeStep);
-        updatePosition(timeStep);
-        updateDustCollection();
-        updateSensorValues();
+    public void updateWheelSpeeds(){
+        double[] newWheelSpeeds = NEURAL_NET.evaluate(sensorValues);
+        setWheelSpeeds(newWheelSpeeds[0], newWheelSpeeds[1]);
     }
 
-    public void updateWheelSpeeds(double timeStep){
-        double[] newWheelSpeeds = BRAIN.evaluate(sensorValues);
-        setWheelSpeeds(newWheelSpeeds[0], newWheelSpeeds[1], timeStep);
-    }
-
-    public void updatePosition(double timeStep){
+    public void updatePosition(){
         double[] newPosition = new double[2];
 
         if (Math.abs(wheelSpeeds[0] - wheelSpeeds[1]) < 0.000001) {
-            newPosition[0] = position[0] + Math.cos(angle) * wheelSpeeds[0] * timeStep;
-            newPosition[1] = position[1] + Math.sin(angle) * wheelSpeeds[0] * timeStep;
+            newPosition[0] = position[0] + Math.cos(angle) * wheelSpeeds[0] * WORLD.getTimeStep();
+            newPosition[1] = position[1] + Math.sin(angle) * wheelSpeeds[0] * WORLD.getTimeStep();
         } else {
             double radius = (WHEEL_DISTANCE / 2) * ((wheelSpeeds[0] + wheelSpeeds[1]) / (wheelSpeeds[1] - wheelSpeeds[0]));
             double omega = (wheelSpeeds[1] - wheelSpeeds[0]) / WHEEL_DISTANCE;
 
             double[] ICC = {position[0] - radius * Math.sin(angle), position[1] + radius * Math.cos(angle)};
-            newPosition[0] = Math.cos(omega*timeStep)*(position[0] - ICC[0]) - Math.sin(omega*timeStep)*(position[1] - ICC[1]) + ICC[0];
-            newPosition[1] = Math.sin(omega*timeStep)*(position[0] - ICC[0]) + Math.cos(omega*timeStep)*(position[1] - ICC[1]) + ICC[1];
+            newPosition[0] = Math.cos(omega*WORLD.getTimeStep())*(position[0] - ICC[0]) - Math.sin(omega*WORLD.getTimeStep())*(position[1] - ICC[1]) + ICC[0];
+            newPosition[1] = Math.sin(omega*WORLD.getTimeStep())*(position[0] - ICC[0]) + Math.cos(omega*WORLD.getTimeStep())*(position[1] - ICC[1]) + ICC[1];
 
-            angle = angle + omega * timeStep;
+            angle = angle + omega * WORLD.getTimeStep();
         }
 
         collisionCheck(newPosition);
@@ -139,10 +142,12 @@ public class Robot {
     }
 
     private void collisionCheck(double[] newPosition){
+        boolean collision = false;
         for (double[] wall : WORLD.getEnvironment()) {
             double[] intersect = closestPointOnLine(wall[0], wall[1], wall[2], wall[3], newPosition[0], newPosition[1]);
             double distanceSquared = Math.pow((intersect[0] - newPosition[0]), 2) + Math.pow((intersect[1] - newPosition[1]), 2);
             if (distanceSquared < Math.pow(DIAMETER/2, 2)) {
+                collision = true;
                 double distance = Math.sqrt(distanceSquared);
                 int jumpedWall = lineIntersect(position[0], position[1], newPosition[0], newPosition[1], wall[0], wall[1], wall[2], wall[3]) != null ? -1 : 1;
 
@@ -150,6 +155,8 @@ public class Robot {
                 newPosition[1] = intersect[1] + (newPosition[1] - intersect[1]) / distance * DIAMETER/2 * jumpedWall;
             }
         }
+
+        if(collision) ticksInWall++;
 
         position = newPosition;
     }
@@ -249,12 +256,24 @@ public class Robot {
         g.strokeLine(x, y, x + v.x, y + v.y);
     }
 
+    public NeuralNet getNeuralNet(){
+        return NEURAL_NET;
+    }
+
     public String getName() {
         return NAME;
     }
 
     public int getTotalDustCollected() {
         return totalDustCollected;
+    }
+
+    public int getTicksInWall() {
+        return ticksInWall;
+    }
+
+    public double getFitness() {
+        return totalDustCollected*DUST_RESOLUTION*DUST_RESOLUTION - ticksInWall*WORLD.getTimeStep();
     }
 
     public double[] getPosition() {
@@ -265,10 +284,10 @@ public class Robot {
         return wheelSpeeds;
     }
 
-    public void setWheelSpeeds(double leftSpeed, double rightSpeed, double timeStep) {
+    public void setWheelSpeeds(double leftSpeed, double rightSpeed) {
         if(DO_ACCELERATION){
-            wheelSpeeds[0] = clamp(leftSpeed, wheelSpeeds[0] - MAX_ACCELERATION*timeStep, wheelSpeeds[0] + MAX_ACCELERATION*timeStep);
-            wheelSpeeds[1] = clamp(rightSpeed, wheelSpeeds[1] - MAX_ACCELERATION*timeStep, wheelSpeeds[1] + MAX_ACCELERATION*timeStep);
+            wheelSpeeds[0] = clamp(leftSpeed, wheelSpeeds[0] - MAX_ACCELERATION*WORLD.getTimeStep(), wheelSpeeds[0] + MAX_ACCELERATION*WORLD.getTimeStep());
+            wheelSpeeds[1] = clamp(rightSpeed, wheelSpeeds[1] - MAX_ACCELERATION*WORLD.getTimeStep(), wheelSpeeds[1] + MAX_ACCELERATION*WORLD.getTimeStep());
         } else {
             wheelSpeeds[0] = leftSpeed;
             wheelSpeeds[1] = rightSpeed;
@@ -287,5 +306,26 @@ public class Robot {
 
     public double getAngle() {
         return angle;
+    }
+
+    public void reset(){
+        reset(new double[]{WORLD.getWidth()/2, WORLD.getHeight()/2}, 0.0);
+    }
+
+    public void reset(double[] position, double angle){
+        this.position = position;
+        this.angle = angle;
+        updateSensorValues();
+        this.wheelSpeeds = new double[]{0, 0};
+        for (boolean[] booleans : dustIsCollected) {
+            Arrays.fill(booleans, false);
+        }
+        this.totalDustCollected = 0;
+        this.ticksInWall = 0;
+    }
+
+    @Override
+    public int compareTo(Robot otherRobot) {
+        return Double.compare(this.getFitness(), otherRobot.getFitness());
     }
 }
