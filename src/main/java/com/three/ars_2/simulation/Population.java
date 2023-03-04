@@ -14,7 +14,7 @@ public class Population {
     public void populate(int populationSize) {
         this.populationSize = populationSize;
         for (int i = 0; i < populationSize; i++) {
-            robots.add(new Robot(WORLD, "Robot " + i));
+            robots.add(new Robot(WORLD,  String.valueOf(i)));
         }
         individualCount = populationSize;
     }
@@ -25,9 +25,12 @@ public class Population {
 
     public void commitGenocide(int numSurvivors){
         sortIndividuals();
-        System.out.println("Worst: " + robots.get(0).getFitness());
-        System.out.println("Best: " + robots.get(robots.size()-1).getFitness());
         robots.subList(0, robots.size()-numSurvivors).clear();
+    }
+
+    public void commitGenocide(double ratioSurvivors){
+        sortIndividuals();
+        robots.subList(0, (int)(robots.size()*(1.0-ratioSurvivors))).clear();
     }
 
     public void doTheSexy(){
@@ -41,8 +44,8 @@ public class Population {
 
     public Robot getOffspring(Robot first, Robot second){
         NeuralNet newNeuralNet = new NeuralNet(randomMergeGenomes(first.getNeuralNet().getGenome(), second.getNeuralNet().getGenome()), first.getNeuralNet().isRecurrent());
-        Robot baby = new Robot(WORLD, "Robot " + individualCount++, newNeuralNet);
-        baby.getNeuralNet().mutate(1.0/5);
+        Robot baby = new Robot(WORLD, individualCount++ + ":(" + first.getName() + "+" + second.getName() + ")", newNeuralNet);
+        baby.getNeuralNet().mutate(1.0/4);
         return baby;
     }
 

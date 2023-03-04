@@ -8,6 +8,8 @@ import java.util.List;
 
 public class World {
     private double timeStep;
+    private double[] START_POSITION;
+    private double START_ANGLE;
     private final double HEIGHT;
     private final double WIDTH;
     private final double[][] ENVIRONMENT;
@@ -15,8 +17,10 @@ public class World {
 
     public World() {
         this.timeStep = 1.0/10;
-        this.HEIGHT = 6;
-        this.WIDTH = 6;
+        this.START_POSITION = new double[]{0.5,0.5};
+        this.START_ANGLE = 0.0;
+        this.HEIGHT = 4;
+        this.WIDTH = 4;
         this.ENVIRONMENT = createEnvironment();
         this.POPULATION = new Population(this);
 
@@ -30,9 +34,11 @@ public class World {
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
 
-        environment.add(new double[] {1, 1, 5, 1});
-        environment.add(new double[] {1, 5, 5, 5});
-        environment.add(new double[] {2, 2, 2, 4});
+        environment.add(new double[] {1, 1, 1, 3});
+        environment.add(new double[] {1, 2, 3, 2});
+        environment.add(new double[] {3, 1, 3, 3});
+        environment.add(new double[] {2, 0, 2, 1});
+        environment.add(new double[] {2, 3, 2, 4});
 
 //        environment.add(new double[] {1, 1, 5, 1});
 //        environment.add(new double[] {2, 1, 2, 5});
@@ -42,8 +48,8 @@ public class World {
 //        environment.add(new double[] {1, 5, 5, 5});
 //        environment.add(new double[] {2, 3, 5, 1});
 //        environment.add(new double[] {2, 3, 5, 5});
-//        environment.add(new double[] {4, 3, 6, 2});
-//        environment.add(new double[] {4, 3, 6, 4});
+//        environment.add(new double[] {4, 3, 7, 1});
+//        environment.add(new double[] {4, 3, 7, 5});
 
         return environment.toArray(new double[0][]);
     }
@@ -57,10 +63,11 @@ public class World {
     public void doEvolution(int numIndividuals, int numGenerations, double timePerGeneration){
         POPULATION.populate(numIndividuals);
         for (int i = 0; i < numGenerations; i++) {
-            for (int j = 0; j < timePerGeneration/ timeStep; j++) {
+            for (int j = 0; j < timePerGeneration/timeStep; j++) {
                 update();
             }
-            POPULATION.commitGenocide(32);
+            POPULATION.commitGenocide(.1);
+            System.out.println("Generation: " + i + " | Best fitness: " + POPULATION.getRobots().get(POPULATION.getRobots().size()-1).getFitness());
             for(Robot robot: POPULATION.getRobots()){
                 robot.reset();
             }
@@ -71,9 +78,7 @@ public class World {
             update();
         }
         POPULATION.commitGenocide(1);
-        for(Robot robot: POPULATION.getRobots()){
-            robot.reset();
-        }
+        POPULATION.getRobots().get(0).reset();
     }
 
     public void draw(GraphicsContext g){
@@ -94,6 +99,14 @@ public class World {
 
     public void setTimeStep(double timeStep){
         this.timeStep = timeStep;
+    }
+
+    public double[] getStartPosition() {
+        return START_POSITION;
+    }
+
+    public double getStartAngle() {
+        return START_ANGLE;
     }
 
     public double getHeight() {

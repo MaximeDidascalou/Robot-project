@@ -12,8 +12,8 @@ public class Robot implements Comparable<Robot>{
     private final World WORLD; //reference to the world it is in
     private final String NAME;
     private final NeuralNet NEURAL_NET;
-    private final int NUM_SENSORS; //number of sensors
-    private final double MAX_SENSOR_DISTANCE; //Maximum distance a sensor can see
+    private static final int NUM_SENSORS = 12;; //number of sensors
+    private static final double MAX_SENSOR_DISTANCE = 2.0; //Maximum distance a sensor can see
     private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
     private final double DIAMETER; //diameter
     private final double WHEEL_DISTANCE; //length between wheels
@@ -29,15 +29,13 @@ public class Robot implements Comparable<Robot>{
     double[] sensorValues;
     private boolean[][] dustIsCollected;
     private int totalDustCollected;
-    private int ticksInWall;
+    private int ticksInWall, totalTicks;
 
 
-    Robot(World world, String name, NeuralNet neuralNet, double[] position, double angle){
+    Robot(World world, String name, NeuralNet neuralNet){
         this.WORLD = world;
         this.NAME = name;
         this.NEURAL_NET = neuralNet;
-        this.NUM_SENSORS = 12;
-        this.MAX_SENSOR_DISTANCE = 2.0;
         this.SENSOR_ANGLES = new double[NUM_SENSORS];
         this.sensorValues = new double[NUM_SENSORS];
         this.createSensors();
@@ -46,19 +44,16 @@ public class Robot implements Comparable<Robot>{
         this.MAX_WHEEL_SPEED = 1.0;
         this.DO_ACCELERATION = false;
         this.MAX_ACCELERATION = 0.5;
-        this.DUST_RESOLUTION = 1.0/8;
+        this.DUST_RESOLUTION = 1.0/4;
         this.dustIsCollected = new boolean[(int)(WORLD.getWidth()/DUST_RESOLUTION)][(int)(WORLD.getHeight()/DUST_RESOLUTION)];
 
-        this.reset(position, angle);
-    }
-
-    Robot(World world, String name, NeuralNet neuralNet) {
-        this(world, name, neuralNet, new double[]{world.getWidth()/2, world.getHeight()/2}, 0.0);
+        this.position = new double[2];
+        this.reset();
     }
 
     //Construct robot with random NN
     Robot(World world, String name) {
-        this(world, name, new NeuralNet(new int[]{12, 2}, false));
+        this(world, name, new NeuralNet(new int[]{12, 20, 2}, false));
     }
 
     private void createSensors(){
@@ -74,6 +69,7 @@ public class Robot implements Comparable<Robot>{
         updatePosition();
         updateDustCollection();
         updateSensorValues();
+        totalTicks++;
     }
 
     public void updateSensorValues() {
@@ -125,8 +121,8 @@ public class Robot implements Comparable<Robot>{
     }
 
     private void updateDustCollection(){
-        for (int i = (int)((position[0] - DIAMETER/2)/DUST_RESOLUTION); i < Math.min((int)((position[0] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected.length); i++) {
-            for (int j = (int)((position[1] - DIAMETER/2)/DUST_RESOLUTION); j < Math.min((int)((position[1] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected[i].length); j++) {
+        for(int i = Math.max((int)((position[0] - DIAMETER/2)/DUST_RESOLUTION), 0); i < Math.min((int)((position[0] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected.length); i++) {
+            for (int j = Math.max((int)((position[1] - DIAMETER/2)/DUST_RESOLUTION),0); j < Math.min((int)((position[1] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected[i].length); j++) {
                 if(!dustIsCollected[i][j] && dustDistanceSquared(i, j) < Math.pow(DIAMETER/2,2)){
                     dustIsCollected[i][j] = true;
                     totalDustCollected++;
@@ -273,7 +269,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public double getFitness() {
-        return totalDustCollected*DUST_RESOLUTION*DUST_RESOLUTION - ticksInWall*WORLD.getTimeStep();
+        return totalDustCollected*DUST_RESOLUTION*DUST_RESOLUTION/WORLD.getWidth()/WORLD.getHeight() - 1.0*ticksInWall/totalTicks;
     }
 
     public double[] getPosition() {
@@ -309,11 +305,11 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void reset(){
-        reset(new double[]{WORLD.getWidth()/2, WORLD.getHeight()/2}, 0.0);
+        reset(WORLD.getStartPosition(), WORLD.getStartAngle());
     }
-
     public void reset(double[] position, double angle){
-        this.position = position;
+        this.position[0] = position[0];
+        this.position[1] = position[1];
         this.angle = angle;
         updateSensorValues();
         this.wheelSpeeds = new double[]{0, 0};
@@ -322,8 +318,8 @@ public class Robot implements Comparable<Robot>{
         }
         this.totalDustCollected = 0;
         this.ticksInWall = 0;
+        this.totalTicks = 0;
     }
-
     @Override
     public int compareTo(Robot otherRobot) {
         return Double.compare(this.getFitness(), otherRobot.getFitness());
