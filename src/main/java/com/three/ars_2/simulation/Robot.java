@@ -9,59 +9,47 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 
 public class Robot implements Comparable<Robot>{
+    private static final int NUM_SENSORS = 12;; //number of sensors
+    private static final double MAX_SENSOR_DISTANCE = 2.0; //Maximum distance a sensor can see
+    private static final double[] SENSOR_ANGLES = new double[NUM_SENSORS]; //Sensor angles, relative to bot angle
+    private static final double DIAMETER = 0.5; //diameter of the robot
+    private static final double WHEEL_DISTANCE = 0.4; //length between wheels
+    private static final double MAX_WHEEL_SPEED = 1.0; //maximum speed of the wheels
+    private static final boolean DO_ACCELERATION = true;
+    private static final double MAX_ACCELERATION = .5;
+
     private final World WORLD; //reference to the world it is in
     private final String NAME;
     private final NeuralNet NEURAL_NET;
-    private static final int NUM_SENSORS = 12;; //number of sensors
-    private static final double MAX_SENSOR_DISTANCE = 2.0; //Maximum distance a sensor can see
-    private final double[] SENSOR_ANGLES; //Sensor angles, relative to bot angle
-    private final double DIAMETER; //diameter
-    private final double WHEEL_DISTANCE; //length between wheels
-    private final double MAX_WHEEL_SPEED;
-    private final boolean DO_ACCELERATION;
-    private final double MAX_ACCELERATION;
-    private final double DUST_RESOLUTION;
 
-
-    private double[] position;
+    private double[] position = new double[2];
     private double angle;
-    private double[] wheelSpeeds;
-    double[] sensorValues;
+    private double[] wheelSpeeds = new double[2];
+    private double[] sensorValues = new double[NUM_SENSORS];;
     private boolean[][] dustIsCollected;
-    private int totalDustCollected;
-    private int ticksInWall, totalTicks;
+    private int totalDustCollected, ticksInWall, totalTicks;
 
+    static {
+        if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
+            double angleInterval = 2*Math.PI/ NUM_SENSORS;
+
+            for(int i = 0; i < NUM_SENSORS; i++) {
+                SENSOR_ANGLES[i] = i*angleInterval;
+            }
+        }
+    }
 
     Robot(World world, String name, NeuralNet neuralNet){
         this.WORLD = world;
         this.NAME = name;
         this.NEURAL_NET = neuralNet;
-        this.SENSOR_ANGLES = new double[NUM_SENSORS];
-        this.sensorValues = new double[NUM_SENSORS];
-        this.createSensors();
-        this.DIAMETER = 0.5;
-        this.WHEEL_DISTANCE = 0.4;
-        this.MAX_WHEEL_SPEED = 1.0;
-        this.DO_ACCELERATION = false;
-        this.MAX_ACCELERATION = 0.5;
-        this.DUST_RESOLUTION = 1.0/4;
-        this.dustIsCollected = new boolean[(int)(WORLD.getWidth()/DUST_RESOLUTION)][(int)(WORLD.getHeight()/DUST_RESOLUTION)];
 
-        this.position = new double[2];
         this.reset();
     }
 
     //Construct robot with random NN
     Robot(World world, String name) {
-        this(world, name, new NeuralNet(new int[]{12, 20, 2}, false));
-    }
-
-    private void createSensors(){
-        double angleInterval = 2*Math.PI/ NUM_SENSORS;
-
-        for(int i = 0; i < NUM_SENSORS; i++) {
-            SENSOR_ANGLES[i] = angle + i*angleInterval;
-        }
+        this(world, name, new NeuralNet(new int[]{12, 2}, false));
     }
 
     public void update(){
@@ -97,7 +85,7 @@ public class Robot implements Comparable<Robot>{
 
     public void updateWheelSpeeds(){
         double[] newWheelSpeeds = NEURAL_NET.evaluate(sensorValues);
-        setWheelSpeeds(newWheelSpeeds[0], newWheelSpeeds[1]);
+        setWheelSpeeds(newWheelSpeeds[0] * MAX_WHEEL_SPEED, newWheelSpeeds[1] * MAX_WHEEL_SPEED);
     }
 
     public void updatePosition(){
@@ -121,8 +109,8 @@ public class Robot implements Comparable<Robot>{
     }
 
     private void updateDustCollection(){
-        for(int i = Math.max((int)((position[0] - DIAMETER/2)/DUST_RESOLUTION), 0); i < Math.min((int)((position[0] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected.length); i++) {
-            for (int j = Math.max((int)((position[1] - DIAMETER/2)/DUST_RESOLUTION),0); j < Math.min((int)((position[1] + DIAMETER/2)/DUST_RESOLUTION) + 2, dustIsCollected[i].length); j++) {
+        for(int i = Math.max((int)((position[0] - DIAMETER/2)/ WORLD.getDustResolution()), 0); i < Math.min((int)((position[0] + DIAMETER/2)/ WORLD.getDustResolution()) + 2, dustIsCollected.length); i++) {
+            for (int j = Math.max((int)((position[1] - DIAMETER/2)/ WORLD.getDustResolution()),0); j < Math.min((int)((position[1] + DIAMETER/2)/ WORLD.getDustResolution()) + 2, dustIsCollected[i].length); j++) {
                 if(!dustIsCollected[i][j] && dustDistanceSquared(i, j) < Math.pow(DIAMETER/2,2)){
                     dustIsCollected[i][j] = true;
                     totalDustCollected++;
@@ -132,8 +120,8 @@ public class Robot implements Comparable<Robot>{
     }
 
     private double dustDistanceSquared(int i, int j) {
-        double dustX = (i + 0.5)*DUST_RESOLUTION;
-        double dustY = (j + 0.5)*DUST_RESOLUTION;
+        double dustX = (i + 0.5)* WORLD.getDustResolution();
+        double dustY = (j + 0.5)* WORLD.getDustResolution();
         return Math.pow(dustX - position[0],2) + Math.pow((dustY)-position[1],2);
     }
 
@@ -214,7 +202,8 @@ public class Robot implements Comparable<Robot>{
         for (int i = 0; i < dustIsCollected.length; i++) {
             for (int j = 0; j < dustIsCollected[i].length; j++) {
                 if(!dustIsCollected[i][j]){
-                    g.fillOval((i*DUST_RESOLUTION + DUST_RESOLUTION/2)*GuiSettings.SCALING - 2, (j*DUST_RESOLUTION + DUST_RESOLUTION/2)*GuiSettings.SCALING - 2, 4, 4);
+                    g.fillOval((i* WORLD.getDustResolution() + WORLD.getDustResolution()/2)*GuiSettings.SCALING - 2,
+                            (j* WORLD.getDustResolution() + WORLD.getDustResolution()/2)*GuiSettings.SCALING - 2, 4, 4);
                 }
             }
         }
@@ -269,7 +258,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public double getFitness() {
-        return totalDustCollected*DUST_RESOLUTION*DUST_RESOLUTION/WORLD.getWidth()/WORLD.getHeight() - 1.0*ticksInWall/totalTicks;
+        return totalDustCollected*WORLD.getDustResolution()*WORLD.getDustResolution()/WORLD.getWidth()/WORLD.getHeight() - 1.0*ticksInWall/totalTicks;
     }
 
     public double[] getPosition() {
@@ -313,9 +302,7 @@ public class Robot implements Comparable<Robot>{
         this.angle = angle;
         updateSensorValues();
         this.wheelSpeeds = new double[]{0, 0};
-        for (boolean[] booleans : dustIsCollected) {
-            Arrays.fill(booleans, false);
-        }
+        this.dustIsCollected = new boolean[(int)(WORLD.getWidth()/WORLD.getDustResolution())][(int)(WORLD.getHeight()/WORLD.getDustResolution())];
         this.totalDustCollected = 0;
         this.ticksInWall = 0;
         this.totalTicks = 0;

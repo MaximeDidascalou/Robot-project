@@ -16,7 +16,7 @@ public class MainScene extends Scene {
     private static double border = 128;
     private StackPane mainStackPane;
     private VBox controlVBox;
-    private final World world;
+    private final World WORLD;
     private Controller controller;
     private Canvas canvasBackground;
     private Canvas canvasMovables;
@@ -26,7 +26,7 @@ public class MainScene extends Scene {
         super(mainStackPane,controller.getWorld().getWidth()*GuiSettings.SCALING +border*2,controller.getWorld().getHeight()*GuiSettings.SCALING +border*2);
         double width = controller.getWorld().getWidth()*GuiSettings.SCALING;
         double height = controller.getWorld().getHeight()*GuiSettings.SCALING;
-        this.world = controller.getWorld();
+        this.WORLD = controller.getWorld();
         this.controller = controller;
         canvasBackground = new Canvas(width,height);
         canvasMovables = new Canvas(width,height);
@@ -47,25 +47,24 @@ public class MainScene extends Scene {
     }
     public void drawBackground(){
         GraphicsContext g = canvasBackground.getGraphicsContext2D();
-        world.draw(g);
+        WORLD.draw(g);
     }
     public void drawMovables(){
         GraphicsContext g = canvasMovables.getGraphicsContext2D();
-        g.clearRect(0,0,world.getWidth()*GuiSettings.SCALING,world.getHeight()*GuiSettings.SCALING);
-        for (Robot robot :world.getRobots()){
+        g.clearRect(0,0, WORLD.getWidth()*GuiSettings.SCALING, WORLD.getHeight()*GuiSettings.SCALING);
+        for (Robot robot : WORLD.getPopulation().getRobots()){
             robot.draw(g);
         }
     }
-
     public void addListeners(){
         this.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> {
-            for(Robot robot: world.getRobots()) {
+            for(Robot robot: WORLD.getPopulation().getRobots()) {
                 controller.updateRobotParameters(robot, keyEvent.getCode().getCode());
             }
         });
     }
     public void createControlDisplays() {
-        for (Robot robot :world.getRobots()) {
+        for (Robot robot : WORLD.getPopulation().getRobots()) {
             ControlDisplay c = new ControlDisplay(robot);
             displays.add(c);
             controlVBox.getChildren().add(c);

@@ -32,11 +32,10 @@ public class Controller implements Runnable {
     }
 
     public void runEvolution(){
-        WORLD.doEvolution(1000, 100, 30);
+        WORLD.runEvolution();
     }
 
     public void run() {
-        WORLD.setTimeStep(1.0/4);
         runEvolution();
         WORLD.setTimeStep(1.0/60);
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* WORLD.getTimeStep())), event -> {

@@ -4,19 +4,17 @@ import java.util.*;
 
 public class Population {
     private final World WORLD;
-    private int populationSize;
     private int individualCount;
     private List<Robot> robots = new ArrayList<>();
     public Population(World world){
         this.WORLD = world;
     }
 
-    public void populate(int populationSize) {
-        this.populationSize = populationSize;
-        for (int i = 0; i < populationSize; i++) {
-            robots.add(new Robot(WORLD,  String.valueOf(i)));
+    public void reset(){
+        for (int i = 0; i < WORLD.getPopulationSize(); i++) {
+            robots.add(new Robot(WORLD, String.valueOf(i)));
         }
-        individualCount = populationSize;
+        individualCount = WORLD.getPopulationSize();
     }
 
     public void sortIndividuals(){
@@ -36,7 +34,7 @@ public class Population {
     public void doTheSexy(){
         Random random = new Random();
         List<Robot> babies = new ArrayList<>();
-        for (int i = 0; i < populationSize-robots.size(); i++) {
+        for (int i = 0; i < WORLD.getPopulationSize()-robots.size(); i++) {
             babies.add(getOffspring(robots.get(random.nextInt(robots.size())), robots.get(random.nextInt(robots.size()))));
         }
         robots.addAll(babies);
@@ -44,7 +42,8 @@ public class Population {
 
     public Robot getOffspring(Robot first, Robot second){
         NeuralNet newNeuralNet = new NeuralNet(randomMergeGenomes(first.getNeuralNet().getGenome(), second.getNeuralNet().getGenome()), first.getNeuralNet().isRecurrent());
-        Robot baby = new Robot(WORLD, individualCount++ + ":(" + first.getName() + "+" + second.getName() + ")", newNeuralNet);
+//        Robot baby = new Robot(WORLD, individualCount++ + ":(" + first.getName() + "+" + second.getName() + ")", newNeuralNet);
+        Robot baby = new Robot(WORLD, String.valueOf(individualCount++), newNeuralNet);
         baby.getNeuralNet().mutate(1.0/4);
         return baby;
     }

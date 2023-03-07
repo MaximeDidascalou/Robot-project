@@ -156,5 +156,4 @@ public class NeuralNet {
         System.arraycopy(second, 0, newArray, first.length, second.length);
         return newArray;
     }
-
 }
