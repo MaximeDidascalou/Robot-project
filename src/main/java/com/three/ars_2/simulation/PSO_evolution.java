@@ -5,18 +5,18 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.*;
 
 public class PSO_evolution {
-    int numIndividuals;
-    int numGenerations;
-    int numSurvivors;
-    double min_param;
-    double max_param;
-    double[][] parameters;
-    double[] performance;
+    static int numIndividuals;
+    static int numGenerations;
+    static int numSurvivors;
+    static double min_param;
+    static double max_param;
+    static double[][] parameters;
+    static double[] performance;
 
-    int pso_particles;
-    int pso_iter;
+    static int pso_particles;
+    static int pso_iter;
 
-    public void main(String[] args){
+    public static void main(String[] args){
         Random random = new Random();
         numIndividuals = 100;
         numGenerations = 5;
@@ -48,7 +48,7 @@ public class PSO_evolution {
     }
     
 
-    public void doEvolution(){
+    public static void doEvolution(){
         for (int i = 0; i < numGenerations; i++) {
             for (int j = 0; j < numIndividuals; j++){
                 PSO pso = new PSO(pso_particles, pso_iter, parameters[j][0], parameters[j][1], parameters[j][2], parameters[j][3]);
@@ -60,12 +60,12 @@ public class PSO_evolution {
         }
     }
 
-    public int[] commitGenocide(){
+    public static int[] commitGenocide(){
         int[] ranked_psos = getSortedIndices(performance);
         return Arrays.copyOfRange(ranked_psos, 0, numSurvivors);
     }
 
-    public void doTheSexy(int[] remaining_params){
+    public static void doTheSexy(int[] remaining_params){
         Random random = new Random();
 
         double[][] new_params = new double[numIndividuals][4];
@@ -100,7 +100,7 @@ public class PSO_evolution {
 
 
 
-    public int[] getSortedIndices(double[] originalArray){
+    public static int[] getSortedIndices(double[] originalArray){
         int len = originalArray.length;
 
         double[] sortedCopy = originalArray.clone();
