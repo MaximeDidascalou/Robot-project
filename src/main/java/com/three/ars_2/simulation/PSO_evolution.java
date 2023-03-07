@@ -18,14 +18,14 @@ public class PSO_evolution {
 
     public static void main(String[] args){
         Random random = new Random();
-        numIndividuals = 100;
-        numGenerations = 5;
+        numIndividuals = 200;
+        numGenerations = 200;
         numSurvivors = 20;
         min_param = 0.0;
         max_param = 5.0;
 
         pso_particles = 20;
-        pso_iter = 100;
+        pso_iter = 200;
 
         performance = new double[numIndividuals];
 
@@ -37,6 +37,17 @@ public class PSO_evolution {
         }
 
         doEvolution();
+
+        for (int i = 0; i < parameters.length; i++) { //this equals to the row in our matrix.
+            for (int j = 0; j < parameters[i].length; j++) { //this equals to the column in each row.
+               System.out.print(parameters[i][j] + " ");
+            }
+            System.out.println(); //change line on console as row comes to end in the matrix.
+         }
+
+         for (int i = 0; i < parameters.length; i++) {
+            System.out.println(performance[i]);
+         }
 
         
     }
@@ -82,9 +93,9 @@ public class PSO_evolution {
             int ind_2 = ThreadLocalRandom.current().nextInt(0, numSurvivors);
             for (int j = 0; j < 4; j++){
                 double choice = Math.random();
-                if (choice < 0.5){
+                if (choice < 0.1){
                     new_params[i][j] = (new_params[ind_1][j] + new_params[ind_2][j])/2;
-                } else if (choice < 0.74) {
+                } else if (choice < 0.54) {
                     new_params[i][j] = new_params[ind_1][j];
                 } else if (choice < 0.98) {
                     new_params[i][j] = new_params[ind_2][j];
