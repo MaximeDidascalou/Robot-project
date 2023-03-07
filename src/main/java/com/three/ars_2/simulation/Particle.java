@@ -10,6 +10,7 @@ public class Particle {
     public Vector2D pos,vel,best_pos;
     public static Vector2D global_best_pos;
     public static double global_best_performance = Double.MAX_VALUE;
+    public double personal_best_performance;
     public double performance = Double.MAX_VALUE;
     private double maxSpeed;
     private Random random = new Random();
@@ -27,6 +28,7 @@ public class Particle {
         this.vel = vel;
         this.maxSpeed = max_speed;
         best_pos = pos.clone();
+        personal_best_performance = getPerformance(pos.x, pos.y);
         position_history.add(pos.clone());
     }
 
@@ -45,11 +47,30 @@ public class Particle {
     }
     public void updatePosition(){
         pos.add(vel);
+
+        if (pos.x < -3){
+            pos.x = -3;
+            vel.x = -vel.x;
+        } else if (pos.x > 3) {
+            pos.x = 3;
+            vel.x = -vel.x;
+        } else if (pos.y <-3){
+            pos.y = -3;
+            vel.y = -vel.y;
+        } else if (pos.y >3){
+            pos.y = 3;
+            vel.y = -vel.y;
+        }
+
         position_history.add(pos.clone());
         performance = getPerformance(pos.x, pos.y);
         if(performance < global_best_performance){
             global_best_performance = performance;
             global_best_pos = pos.clone();
+        }
+        if(performance < personal_best_performance){
+            personal_best_performance = performance;
+            best_pos = pos.clone();
         }
     }
 
