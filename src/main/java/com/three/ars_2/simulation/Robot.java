@@ -6,23 +6,21 @@ import javafx.scene.canvas.GraphicsContext;
 
 import java.lang.Math;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.Collections;
 
 public class Robot implements Comparable<Robot>{
     private static final int NUM_SENSORS = 12;; //number of sensors
-    private static final double MAX_SENSOR_DISTANCE = 2.0; //Maximum distance a sensor can see
+    private static final double MAX_SENSOR_DISTANCE = 5.0; //Maximum distance a sensor can see
     private static final double[] SENSOR_ANGLES = new double[NUM_SENSORS]; //Sensor angles, relative to bot angle
     private static final double DIAMETER = 0.5; //diameter of the robot
     private static final double WHEEL_DISTANCE = 0.4; //length between wheels
     private static final double MAX_WHEEL_SPEED = 1.0; //maximum speed of the wheels
     private static final boolean DO_ACCELERATION = true;
-    private static final double MAX_ACCELERATION = 0.5;
+    private static final double MAX_ACCELERATION = 1.0;
     private static final double[] FITNESS_WEIGHTS = new double[]{1.0, 0.0}; //weights for weighted fitness sum [dust weight, wall weight]
 
     private final World WORLD; //reference to the world it is in
     private final String NAME;
-    private final NeuralNet NEURAL_NET;
+    private final ANN ANN;
 
     private double[] position = new double[2];
     private double angle;
@@ -43,17 +41,17 @@ public class Robot implements Comparable<Robot>{
         }
     }
 
-    Robot(World world, String name, NeuralNet neuralNet){
+    Robot(World world, String name, ANN ann){
         this.WORLD = world;
         this.NAME = name;
-        this.NEURAL_NET = neuralNet;
+        this.ANN = ann;
 
         this.reset();
     }
 
     //Construct robot with random NN
     Robot(World world, String name) {
-        this(world, name, new NeuralNet(new int[]{12, 2}, true));
+        this(world, name, new ANN(new int[]{12, 12, 2}, true));
     }
 
     public void update(){
@@ -88,7 +86,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void updateWheelSpeeds(){
-        double[] newWheelSpeeds = NEURAL_NET.evaluate(sensorValues);
+        double[] newWheelSpeeds = ANN.evaluate(sensorValues);
         setWheelSpeeds(newWheelSpeeds[0] * MAX_WHEEL_SPEED, newWheelSpeeds[1] * MAX_WHEEL_SPEED);
     }
 
@@ -245,8 +243,8 @@ public class Robot implements Comparable<Robot>{
         g.strokeLine(x, y, x + v.x, y + v.y);
     }
 
-    public NeuralNet getNeuralNet(){
-        return NEURAL_NET;
+    public ANN getANN(){
+        return ANN;
     }
 
     public String getName() {
@@ -302,8 +300,8 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void reset(){
-//        reset(WORLD.getStartPosition(), WORLD.getStartAngle());
-        reset(new double[]{Math.random()*WORLD.getWidth(),Math.random()* WORLD.getHeight()}, Math.random()*Math.PI*2);
+        reset(WORLD.getStartPosition(), WORLD.getStartAngle());
+//        reset(new double[]{Math.random()*WORLD.getWidth(),Math.random()* WORLD.getHeight()}, Math.random()*Math.PI*2);
     }
 
     public void reset(double[] position, double angle){

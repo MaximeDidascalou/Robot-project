@@ -23,18 +23,18 @@ public class World {
     private Population population;
 
     public World() {
-        this.HEIGHT = 4;
-        this.WIDTH = 4;
+        this.HEIGHT = 6;
+        this.WIDTH = 3;
         this.START_POSITION = new double[]{0.5,0.5};
         this.START_ANGLE = 0.0;
         this.ENVIRONMENT = createEnvironment();
         this.DUST_RESOLUTION = 1.0/8;
 
-        this.timeStep = 1.0/3;
+        this.timeStep = 1.0/4;
         this.POPULATION_SIZE = 100;
-        this.NUMBER_GENERATIONS = 100;
+        this.NUMBER_GENERATIONS = 1000;
         this.RUNS_PER_INDIVIDUAL = 10;
-        this.SIMULATION_SECONDS = 30;
+        this.SIMULATION_SECONDS = 60;
         this.population = new Population(this);
     }
 
@@ -46,6 +46,10 @@ public class World {
         environment.add(new double[] {0, 0, 0, HEIGHT});
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
+
+        environment.add(new double[] {0, 2, 1, 2});
+        environment.add(new double[] {2, 2, 3, 2});
+        environment.add(new double[] {1, 4, 2, 4});
 
 //        environment.add(new double[] {1, 1, 1, 3});
 //        environment.add(new double[] {1, 2, 3, 2});
@@ -71,18 +75,22 @@ public class World {
         for (int i = 0; i < NUMBER_GENERATIONS; i++) {
             runGeneration();
 
-            population.doSelection(Population.SelectionAlg.TRUNCATION, (int)(POPULATION_SIZE * 0.2), (int)(POPULATION_SIZE * 0.05));
+            System.out.println("Generation: " + i + " | Best fitness: " + population.getIndividuals()[0].getFitness());
 
-            System.out.println("Generation: " + i + " | Best fitness: " + population.getIndividuals().get(population.getIndividuals().size()-1).getFitness());
-
-            population.resetIndividuals();
+            population.doNewGeneration(Population.SelectionAlg.TOURNAMENT, ANN.CrossoverAlg.INTERMEDIATE, (int)(POPULATION_SIZE * 0.1));
         }
+        runGeneration();
+        population.doGenocide(1);
     }
 
     //TODO add number of trials and add support in ROBOT
     public void runGeneration() {
         for (int i = 0; i < SIMULATION_SECONDS/ timeStep; i++) {
             updateRobots();
+        }
+
+        for (Robot robot : population.getIndividuals()){
+            robot.calculateFitness();
         }
     }
 
