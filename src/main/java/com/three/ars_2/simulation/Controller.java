@@ -24,6 +24,7 @@ public class Controller implements Runnable {
             case 84 -> incrementRobotParameters(robot, SPEED_INCREMENT, SPEED_INCREMENT); // T
             case 71 -> incrementRobotParameters(robot, -SPEED_INCREMENT, -SPEED_INCREMENT); // G
             case 88 -> robot.setWheelSpeeds(0, 0); // X
+            case 32 -> robot.reset(); // X
         }
     }
 

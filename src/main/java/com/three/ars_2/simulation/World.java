@@ -30,7 +30,7 @@ public class World {
         this.DUST_RESOLUTION = 1.0/8;
 
         this.timeStep = 1.0/3;
-        this.POPULATION_SIZE = 1000;
+        this.POPULATION_SIZE = 100;
         this.NUMBER_GENERATIONS = 100;
         this.SIMULATION_SECONDS = 30;
         this.POPULATION = new Population(this);
@@ -44,11 +44,11 @@ public class World {
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
 
-        environment.add(new double[] {1, 1, 1, 3});
-        environment.add(new double[] {1, 2, 3, 2});
-        environment.add(new double[] {3, 1, 3, 3});
-        environment.add(new double[] {2, 0, 2, 1});
-        environment.add(new double[] {2, 3, 2, 4});
+//        environment.add(new double[] {1, 1, 1, 3});
+//        environment.add(new double[] {1, 2, 3, 2});
+//        environment.add(new double[] {3, 1, 3, 3});
+//        environment.add(new double[] {2, 0, 2, 1});
+//        environment.add(new double[] {2, 3, 2, 4});
 
 //        environment.add(new double[] {1, 1, 5, 1});
 //        environment.add(new double[] {2, 1, 2, 5});

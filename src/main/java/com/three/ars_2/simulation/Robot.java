@@ -49,7 +49,7 @@ public class Robot implements Comparable<Robot>{
 
     //Construct robot with random NN
     Robot(World world, String name) {
-        this(world, name, new NeuralNet(new int[]{12, 2}, false));
+        this(world, name, new NeuralNet(new int[]{12, 4, 2}, true));
     }
 
     public void update(){
@@ -258,7 +258,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public double getFitness() {
-        return totalDustCollected*WORLD.getDustResolution()*WORLD.getDustResolution()/WORLD.getWidth()/WORLD.getHeight() - 1.0*ticksInWall/totalTicks;
+        return totalDustCollected*WORLD.getDustResolution()*WORLD.getDustResolution()/WORLD.getWidth()/WORLD.getHeight() - 0.0*ticksInWall/totalTicks;
     }
 
     public double[] getPosition() {
@@ -294,7 +294,8 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void reset(){
-        reset(WORLD.getStartPosition(), WORLD.getStartAngle());
+//        reset(WORLD.getStartPosition(), WORLD.getStartAngle());
+        reset(new double[]{Math.random()*WORLD.getWidth(),Math.random()* WORLD.getHeight()}, Math.random()*Math.PI*2);
     }
     public void reset(double[] position, double angle){
         this.position[0] = position[0];
