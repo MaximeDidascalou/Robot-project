@@ -7,6 +7,7 @@ import javafx.scene.canvas.GraphicsContext;
 import java.lang.Math;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class Robot implements Comparable<Robot>{
     private static final int NUM_SENSORS = 12;; //number of sensors
@@ -16,7 +17,8 @@ public class Robot implements Comparable<Robot>{
     private static final double WHEEL_DISTANCE = 0.4; //length between wheels
     private static final double MAX_WHEEL_SPEED = 1.0; //maximum speed of the wheels
     private static final boolean DO_ACCELERATION = true;
-    private static final double MAX_ACCELERATION = .5;
+    private static final double MAX_ACCELERATION = 0.5;
+    private static final double[] FITNESS_WEIGHTS = new double[]{1.0, 0.0}; //weights for weighted fitness sum [dust weight, wall weight]
 
     private final World WORLD; //reference to the world it is in
     private final String NAME;
@@ -28,6 +30,8 @@ public class Robot implements Comparable<Robot>{
     private double[] sensorValues = new double[NUM_SENSORS];;
     private boolean[][] dustIsCollected;
     private int totalDustCollected, ticksInWall, totalTicks;
+
+    private double fitness;
 
     static {
         if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
@@ -49,7 +53,7 @@ public class Robot implements Comparable<Robot>{
 
     //Construct robot with random NN
     Robot(World world, String name) {
-        this(world, name, new NeuralNet(new int[]{12, 2}, false));
+        this(world, name, new NeuralNet(new int[]{12, 2}, true));
     }
 
     public void update(){
@@ -60,7 +64,7 @@ public class Robot implements Comparable<Robot>{
         totalTicks++;
     }
 
-    public void updateSensorValues() {
+    private void updateSensorValues() {
         // update sensor values
         for (int i = 0; i < NUM_SENSORS; i++) {
             sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
@@ -257,12 +261,16 @@ public class Robot implements Comparable<Robot>{
         return ticksInWall;
     }
 
-    public double getFitness() {
-        return totalDustCollected*WORLD.getDustResolution()*WORLD.getDustResolution()/WORLD.getWidth()/WORLD.getHeight() - 1.0*ticksInWall/totalTicks;
+    public void calculateFitness(){
+        fitness = FITNESS_WEIGHTS[0]*totalDustCollected*WORLD.getDustResolution()*WORLD.getDustResolution()/WORLD.getWidth()/WORLD.getHeight() + FITNESS_WEIGHTS[1]*ticksInWall/totalTicks;
     }
 
-    public double[] getPosition() {
-        return position;
+    public double getFitness() {
+        return fitness;
+    }
+
+    public void setFitness(double fitness) {
+        this.fitness = fitness;
     }
 
     public double[] getWheelSpeeds() {
@@ -296,6 +304,7 @@ public class Robot implements Comparable<Robot>{
     public void reset(){
         reset(WORLD.getStartPosition(), WORLD.getStartAngle());
     }
+
     public void reset(double[] position, double angle){
         this.position[0] = position[0];
         this.position[1] = position[1];
@@ -306,9 +315,11 @@ public class Robot implements Comparable<Robot>{
         this.totalDustCollected = 0;
         this.ticksInWall = 0;
         this.totalTicks = 0;
+        this.fitness = Double.MIN_VALUE;
     }
+
     @Override
     public int compareTo(Robot otherRobot) {
-        return Double.compare(this.getFitness(), otherRobot.getFitness());
+        return Double.compare(otherRobot.getFitness(),this.getFitness());
     }
 }

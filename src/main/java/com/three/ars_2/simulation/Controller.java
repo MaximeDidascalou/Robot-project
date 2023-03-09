@@ -27,19 +27,11 @@ public class Controller implements Runnable {
         }
     }
 
-    public void runSimulation() {
-        WORLD.update();
-    }
-
-    public void runEvolution(){
-        WORLD.runEvolution();
-    }
-
     public void run() {
-        runEvolution();
+        WORLD.runEvolution();
         WORLD.setTimeStep(1.0/60);
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* WORLD.getTimeStep())), event -> {
-            runSimulation();
+            WORLD.updateRobots();
             mainScene.drawMovables();
             mainScene.drawControlDisplays();
         }));
