@@ -18,8 +18,9 @@ public class World {
     private double timeStep;
     private final int POPULATION_SIZE;
     private final int NUMBER_GENERATIONS;
+    private final int RUNS_PER_INDIVIDUAL;
     private final int SIMULATION_SECONDS;
-    private final Population POPULATION;
+    private Population population;
 
     public World() {
         this.HEIGHT = 4;
@@ -32,9 +33,11 @@ public class World {
         this.timeStep = 1.0/3;
         this.POPULATION_SIZE = 100;
         this.NUMBER_GENERATIONS = 100;
+        this.RUNS_PER_INDIVIDUAL = 10;
         this.SIMULATION_SECONDS = 30;
-        this.POPULATION = new Population(this);
+        this.population = new Population(this);
     }
+
     private double[][] createEnvironment() {
         List<double[]> environment = new ArrayList<>();
 
@@ -64,39 +67,29 @@ public class World {
         return environment.toArray(new double[0][]);
     }
 
-    public void update(){
-        for(Robot robot: POPULATION.getRobots()){
-            robot.update();
+    public void runEvolution(){
+        for (int i = 0; i < NUMBER_GENERATIONS; i++) {
+            runGeneration();
+
+            population.doSelection(Population.SelectionAlg.TRUNCATION, (int)(POPULATION_SIZE * 0.2), (int)(POPULATION_SIZE * 0.05));
+
+            System.out.println("Generation: " + i + " | Best fitness: " + population.getIndividuals().get(population.getIndividuals().size()-1).getFitness());
+
+            population.resetIndividuals();
         }
     }
 
-    public void runEvolution(){
-        POPULATION.reset();
-        for (int i = 0; i < NUMBER_GENERATIONS; i++) {
-//            System.out.println("Generation: " + i);
-            for (int j = 0; j < SIMULATION_SECONDS/timeStep; j++) {
-                update();
-            }
-//
-//            POPULATION.sortIndividuals();
-//
-//            for(Robot robot: POPULATION.getRobots()){
-//                System.out.println("Robot: " + robot.getName() + " | Fitness: " + robot.getFitness());
-//            }
-
-            POPULATION.commitGenocide(.1);
-            System.out.println("Generation: " + i + " | Best fitness: " + POPULATION.getRobots().get(POPULATION.getRobots().size()-1).getFitness());
-            for(Robot robot: POPULATION.getRobots()){
-                robot.reset();
-            }
-            POPULATION.doTheSexy();
-        }
-
+    //TODO add number of trials and add support in ROBOT
+    public void runGeneration() {
         for (int i = 0; i < SIMULATION_SECONDS/ timeStep; i++) {
-            update();
+            updateRobots();
         }
-        POPULATION.commitGenocide(1);
-        POPULATION.getRobots().get(0).reset();
+    }
+
+    public void updateRobots(){
+        for(Robot robot: population.getIndividuals()){
+            robot.update();
+        }
     }
 
     public void draw(GraphicsContext g){
@@ -127,19 +120,16 @@ public class World {
     public double getDustResolution() {
         return DUST_RESOLUTION;
     }
-
     public double getTimeStep(){
         return timeStep;
     }
     public void setTimeStep(double timeStep){
         this.timeStep = timeStep;
     }
-
     public int getPopulationSize() {
         return POPULATION_SIZE;
     }
-
     public Population getPopulation() {
-        return POPULATION;
+        return population;
     }
 }

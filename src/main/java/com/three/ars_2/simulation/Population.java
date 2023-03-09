@@ -5,65 +5,83 @@ import java.util.*;
 public class Population {
     private final World WORLD;
     private int individualCount;
-    private List<Robot> robots = new ArrayList<>();
-    public Population(World world){
-        this.WORLD = world;
+    private List<Robot> individuals = new ArrayList<>();
+    private Robot[] selectedIndividuals;
+
+    enum SelectionAlg {
+        ROULETTE,
+        TOURNAMENT,
+        TRUNCATION
     }
 
-    public void reset(){
+    public Population(World world){
+        this.WORLD = world;
+        this.individualCount = WORLD.getPopulationSize();
         for (int i = 0; i < WORLD.getPopulationSize(); i++) {
-            robots.add(new Robot(WORLD, String.valueOf(i)));
+            individuals.add(new Robot(WORLD, String.valueOf(i)));
         }
-        individualCount = WORLD.getPopulationSize();
     }
 
     public void sortIndividuals(){
-        Collections.sort(robots);
+        Collections.sort(individuals);
     }
 
-    public void commitGenocide(int numSurvivors){
+    public void doSelection(SelectionAlg selectionAlg, int selectionCount, int elitismCount){
         sortIndividuals();
-        robots.subList(0, robots.size()-numSurvivors).clear();
-    }
+        selectedIndividuals = new Robot[selectionCount];
 
-    public void commitGenocide(double ratioSurvivors){
-        sortIndividuals();
-        robots.subList(0, (int)(robots.size()*(1.0-ratioSurvivors))).clear();
-    }
-
-    public void doTheSexy(){
-        Random random = new Random();
-        List<Robot> babies = new ArrayList<>();
-        for (int i = 0; i < WORLD.getPopulationSize()-robots.size(); i++) {
-            babies.add(getOffspring(robots.get(random.nextInt(robots.size())), robots.get(random.nextInt(robots.size()))));
+        elitismCount = Math.min(selectionCount, elitismCount);
+        for (int i = 0; i < elitismCount; i++) {
+            selectedIndividuals[i] = individuals.get(i);
         }
-        robots.addAll(babies);
-    }
 
-    public Robot getOffspring(Robot first, Robot second){
-        NeuralNet newNeuralNet = new NeuralNet(randomMergeGenomes(first.getNeuralNet().getGenome(), second.getNeuralNet().getGenome()), first.getNeuralNet().isRecurrent());
-//        Robot baby = new Robot(WORLD, individualCount++ + ":(" + first.getName() + "+" + second.getName() + ")", newNeuralNet);
-        Robot baby = new Robot(WORLD, String.valueOf(individualCount++), newNeuralNet);
-        baby.getNeuralNet().mutate(1.0/4);
-        return baby;
-    }
+        switch (selectionAlg){
+            case ROULETTE -> {
 
-    private double[][][] randomMergeGenomes(double[][][] firstGenome, double[][][] secondGenome){
-        double[][][] newGenome = new double[firstGenome.length][][];
-        for (int i = 0; i < firstGenome.length; i++) {
-            newGenome[i] = new double[firstGenome[i].length][];
-            for (int j = 0; j < firstGenome[i].length; j++) {
-                newGenome[i][j] = new double[firstGenome[i][j].length];
-                for (int k = 0; k < firstGenome[i][j].length; k++) {
-                    newGenome[i][j][k] = Math.random() < 0.5 ? firstGenome[i][j][k] : secondGenome[i][j][k];
+            }
+            case TOURNAMENT -> {
+
+            }
+            case TRUNCATION -> {
+                for (int i = elitismCount; i < selectionCount; i++) {
+                    selectedIndividuals[i] = individuals.get(i);
                 }
             }
         }
-
-        return newGenome;
     }
 
-    public List<Robot> getRobots() {
-        return robots;
+    public void doCrossover(NewNeuralNet.CrossoverAlg crossoverAlg, double mutationRate){
+
+        Robot newRobot = new Robot(WORLD, String.valueOf(individualCount++), new NeuralNet(firstRobot.getNeuralNet(), secondRobot.getNeuralNet()))
+
+                double[][][] firstGenome = firstRobot. secondGenome;
+                double[][][] newGenome = new double[firstGenome.length][][];
+
+                for (int i = 0; i < .length; i++) {
+                    newGenome[i] = new double[firstGenome[i].length][];
+                    for (int j = 0; j < firstGenome[i].length; j++) {
+                        newGenome[i][j] = new double[firstGenome[i][j].length];
+                        for (int k = 0; k < firstGenome[i][j].length; k++) {
+                            newGenome[i][j][k] = Math.random() < 0.5 ? firstGenome[i][j][k] : secondGenome[i][j][k];
+                        }
+                    }
+                }
+
+                return new Robot(WORLD, String.valueOf(individualCount++)), new newGenome;
+
+
+        }
+
+        individuals.addAll(newGeneration);
+    }
+
+    public void resetIndividuals(){
+        for(Robot robot: individuals){
+            robot.reset();
+        }
+    }
+
+    public List<Robot> getIndividuals() {
+        return individuals;
     }
 }

@@ -7,6 +7,11 @@ public class NewNeuralNet {
 
     private double[][] activations;
 
+    enum CrossoverAlg {
+        UNIFORM,
+        INTERMEDIATE
+    }
+
     public NewNeuralNet(double[][][] weights, double[][] biases, boolean isRecurrent)
     {
         this.weights = weights;
@@ -15,6 +20,7 @@ public class NewNeuralNet {
         this.IS_RECURRENT = isRecurrent;
     }
 
+    //TODO make recurrence per layer setting -> boolean[]
     public NewNeuralNet(int[] structure, boolean isRecurrent){
         this.weights = new double[structure.length - 1][][];
         this.biases = new double[structure.length - 1][];
@@ -33,6 +39,13 @@ public class NewNeuralNet {
             }
         }
     }
+
+    public NewNeuralNet(NewNeuralNet firstNeuralNet, NewNeuralNet secondNeuralNet, CrossoverAlg crossoverAlg){
+
+
+
+    }
+
     
     public double[] evaluate(double[] sensorInputs){
         activations[0] = copy(sensorInputs);

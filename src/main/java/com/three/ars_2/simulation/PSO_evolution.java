@@ -61,11 +61,15 @@ public class PSO_evolution {
 
     public static void doEvolution(){
         for (int i = 0; i < numGenerations; i++) {
+            PSO pso;
             for (int j = 0; j < numIndividuals; j++){
-                PSO pso = new PSO(pso_particles, pso_iter, parameters[j][0], parameters[j][1], parameters[j][2], parameters[j][3]);
+                pso = new PSO(pso_particles, pso_iter, parameters[j][0], parameters[j][1], parameters[j][2], parameters[j][3]);
                 performance[j] = pso.runPOS();
-                pso.reset();
             }
+
+            int[] ranked_psos = getSortedIndices(performance);
+
+            System.out.println("Generation: " + i + " | 0 performance: " + performance[ranked_psos[0]] + "last performance " + performance[ranked_psos[numIndividuals-1]]);
             int[] remaining_params = commitGenocide();
             doTheSexy(remaining_params);
         }
