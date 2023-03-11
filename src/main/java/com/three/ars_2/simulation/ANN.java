@@ -3,9 +3,10 @@ package com.three.ars_2.simulation;
 import java.util.Arrays;
 
 public class ANN {
+    private final boolean IS_RECURRENT;
+
     private double[][][] weights;
     private double[][] biases;
-    private final boolean IS_RECURRENT;
 
     private double[][] activations;
 
@@ -16,10 +17,11 @@ public class ANN {
 
     //TODO make recurrence per layer setting -> boolean[]
     public ANN(int[] structure, boolean isRecurrent){
+        this.IS_RECURRENT = isRecurrent;
+
         this.weights = new double[structure.length - 1][][];
         this.biases = new double[structure.length - 1][];
         this.activations = new double[structure.length][];
-        this.IS_RECURRENT = isRecurrent;
 
         for (int i = 0; i < weights.length; i++) {
             weights[i] = new double[structure[i + 1]][];
@@ -38,10 +40,33 @@ public class ANN {
         }
     }
 
+//    public ANN(ANN ann){
+//        this.IS_RECURRENT = ann.IS_RECURRENT;
+//
+//        this.weights = new double[ann.weights.length][][];
+//        this.biases = new double[ann.biases.length][];
+//        this.activations = new double[ann.activations.length][];
+//
+//        for (int i = 0; i < ann.weights.length; i++) {
+//            weights[i] = new double[ann.weights[i].length][];
+//            biases[i] = new double[ann.biases[i].length];
+//            for (int j = 0; j < ann.weights[i].length; j++) {
+//                weights[i][j] = new double[ann.weights[i][j].length];
+//                System.arraycopy(ann.weights[i][j], 0, weights[i][j], 0, ann.weights[i][j].length);
+//                biases[i][j] = ann.biases[i][j];
+//            }
+//        }
+//
+//        for (int i = 0; i < activations.length; i++) {
+//            activations[i] = new double[ann.activations[i].length];
+//        }
+//    }
+
     public ANN(CrossoverAlg crossoverAlg, ANN firstANN, ANN secondANN){
+        this.IS_RECURRENT = firstANN.IS_RECURRENT;
+
         this.weights = new double[firstANN.weights.length][][];
         this.biases = new double[firstANN.biases.length][];
-        this.IS_RECURRENT = firstANN.IS_RECURRENT;
         this.activations = new double[firstANN.activations.length][];
 
         for (int i = 0; i < firstANN.weights.length; i++) {

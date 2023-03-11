@@ -52,19 +52,19 @@ public class MainScene extends Scene {
     public void drawMovables(){
         GraphicsContext g = canvasMovables.getGraphicsContext2D();
         g.clearRect(0,0, WORLD.getWidth()*GuiSettings.SCALING, WORLD.getHeight()*GuiSettings.SCALING);
-        for (Robot robot : WORLD.getPopulation().getIndividuals()){
+        for (Robot robot : WORLD.getRobots()){
             robot.draw(g);
         }
     }
     public void addListeners(){
         this.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> {
-            for(Robot robot: WORLD.getPopulation().getIndividuals()) {
+            for(Robot robot: WORLD.getRobots()) {
                 controller.updateRobotParameters(robot, keyEvent.getCode().getCode());
             }
         });
     }
     public void createControlDisplays() {
-        for (Robot robot : WORLD.getPopulation().getIndividuals()) {
+        for (Robot robot : WORLD.getRobots()) {
             ControlDisplay c = new ControlDisplay(robot);
             displays.add(c);
             controlVBox.getChildren().add(c);

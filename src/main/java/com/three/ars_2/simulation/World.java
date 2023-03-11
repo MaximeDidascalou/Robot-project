@@ -3,39 +3,37 @@ package com.three.ars_2.simulation;
 import com.three.ars_2.gui.GuiSettings;
 import javafx.scene.canvas.GraphicsContext;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class World {
-    private final double HEIGHT;
-    private final double WIDTH;
-    private double[] START_POSITION;
-    private double START_ANGLE;
-    private final double[][] ENVIRONMENT;
-    private final double DUST_RESOLUTION;
+    private final double HEIGHT = 5;
+    private final double WIDTH = 5;
+    private double[] START_POSITION = new double[]{0.5,0.5};
+    private double START_ANGLE = 0.0;
+    private final double[][] ENVIRONMENT = createEnvironment();
+    private final double DUST_RESOLUTION = 1.0/8;
+
+    private static final int NUMBER_ROBOTS = 128;
+    private final int NUMBER_GENERATIONS = 128;
+    private final int NUMBER_TRIALS = 8;
+    private final int SIMULATION_SECONDS = 60;
+
+    enum SelectionAlg {
+        RANK,
+        ROULETTE,
+        TOURNAMENT
+    }
 
 
     private double timeStep;
-    private final int POPULATION_SIZE;
-    private final int NUMBER_GENERATIONS;
-    private final int RUNS_PER_INDIVIDUAL;
-    private final int SIMULATION_SECONDS;
-    private Population population;
+    private Robot[] robots;
+    private int numRobotsInHistory;
 
     public World() {
-        this.HEIGHT = 6;
-        this.WIDTH = 3;
-        this.START_POSITION = new double[]{0.5,0.5};
-        this.START_ANGLE = 0.0;
-        this.ENVIRONMENT = createEnvironment();
-        this.DUST_RESOLUTION = 1.0/8;
-
-        this.timeStep = 1.0/4;
-        this.POPULATION_SIZE = 100;
-        this.NUMBER_GENERATIONS = 1000;
-        this.RUNS_PER_INDIVIDUAL = 10;
-        this.SIMULATION_SECONDS = 60;
-        this.population = new Population(this);
+        this.robots = new Robot[0];
     }
 
     private double[][] createEnvironment() {
@@ -47,9 +45,10 @@ public class World {
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
 
-        environment.add(new double[] {0, 2, 1, 2});
-        environment.add(new double[] {2, 2, 3, 2});
-        environment.add(new double[] {1, 4, 2, 4});
+//        environment.add(new double[] {0, 2, 1, 2});
+//        environment.add(new double[] {2, 2, 3, 2});
+//        environment.add(new double[] {1, 4, 2, 4});
+//        environment.add(new double[] {1, 2, 1, 4});
 
 //        environment.add(new double[] {1, 1, 1, 3});
 //        environment.add(new double[] {1, 2, 3, 2});
@@ -57,45 +56,107 @@ public class World {
 //        environment.add(new double[] {2, 0, 2, 1});
 //        environment.add(new double[] {2, 3, 2, 4});
 
-//        environment.add(new double[] {1, 1, 5, 1});
-//        environment.add(new double[] {2, 1, 2, 5});
-//        environment.add(new double[] {0, 2, 1, 2});
-//        environment.add(new double[] {1, 3, 2, 3});
-//        environment.add(new double[] {0, 4, 1, 4});
-//        environment.add(new double[] {1, 5, 5, 5});
-//        environment.add(new double[] {2, 3, 5, 1});
-//        environment.add(new double[] {2, 3, 5, 5});
-//        environment.add(new double[] {4, 3, 7, 1});
-//        environment.add(new double[] {4, 3, 7, 5});
-
         return environment.toArray(new double[0][]);
     }
 
-    public void runEvolution(){
+    public void runEvolution() {
+        DecimalFormat df = new DecimalFormat();
+        timeStep = 1.0/4;
+
+        initialiseRobots();
+        runSimulation();
+
+        df.setMaximumFractionDigits(0);
+        System.out.print("[ Starting Generation | Best robot: " + robots[0].getName()
+                + " | Dust collected: " + df.format(100*robots[0].getTotalDustCollected() * DUST_RESOLUTION * DUST_RESOLUTION / WIDTH / HEIGHT)
+                + "% |");
+        df.setMaximumFractionDigits(3);
+        System.out.println(" Fitness: " + df.format( robots[0].getFitness()) + " ]");
+
         for (int i = 0; i < NUMBER_GENERATIONS; i++) {
-            runGeneration();
+            createNewGeneration(SelectionAlg.TOURNAMENT, ANN.CrossoverAlg.INTERMEDIATE, NUMBER_ROBOTS,  (int)(NUMBER_ROBOTS * 0.05));
+            runSimulation();
 
-            System.out.println("Generation: " + i + " | Best fitness: " + population.getIndividuals()[0].getFitness());
-
-            population.doNewGeneration(Population.SelectionAlg.TOURNAMENT, ANN.CrossoverAlg.INTERMEDIATE, (int)(POPULATION_SIZE * 0.1));
-        }
-        runGeneration();
-        population.doGenocide(1);
-    }
-
-    //TODO add number of trials and add support in ROBOT
-    public void runGeneration() {
-        for (int i = 0; i < SIMULATION_SECONDS/ timeStep; i++) {
-            updateRobots();
-        }
-
-        for (Robot robot : population.getIndividuals()){
-            robot.calculateFitness();
+            df.setMaximumFractionDigits(0);
+            System.out.print("[ Generation: " + (i+1)
+                    + " | Best robot: " + robots[0].getName()
+                    + " | Dust collected: " + df.format(100*robots[0].getTotalDustCollected() * DUST_RESOLUTION * DUST_RESOLUTION / WIDTH / HEIGHT)
+                    + "% |");
+            df.setMaximumFractionDigits(3);
+            System.out.println(" Fitness: " + df.format( robots[0].getFitness()) + " ]");
         }
     }
 
-    public void updateRobots(){
-        for(Robot robot: population.getIndividuals()){
+    private void initialiseRobots(){
+        robots = new Robot[NUMBER_ROBOTS];
+        for (int i = 0; i < robots.length; i++) {
+            robots[i] = new Robot(this, String.valueOf(i), new ANN(new int[]{12, 2}, true));
+            robots[i].initialise();
+        }
+        numRobotsInHistory = NUMBER_ROBOTS;
+    }
+
+    public void runSimulation() {
+        for (Robot robot: robots){
+            double fitnessSum = 0;
+            for (int trial = 0; trial < NUMBER_TRIALS; trial++) {
+                robot.initialise();
+
+                for (int tick = 0; tick < SIMULATION_SECONDS/ timeStep; tick++) {
+                    robot.update();
+                }
+                robot.calculateFitness();
+                fitnessSum += robot.getFitness();
+            }
+            robot.setFitness(fitnessSum / NUMBER_TRIALS);
+        }
+        Arrays.sort(robots);
+    }
+
+    public void createNewGeneration(SelectionAlg selectionAlg, ANN.CrossoverAlg crossoverAlg, int generationSize, int elitismCount) {
+        Robot[] newGeneration = new Robot[generationSize];
+
+        elitismCount = Math.min(generationSize, elitismCount);
+        if (elitismCount > 0) {
+            System.arraycopy(robots, 0, newGeneration, 0, elitismCount);
+        }
+
+        for (int i = elitismCount; i < generationSize; i++) {
+
+            Robot firstRobot = selectRobot(selectionAlg);
+            Robot secondRobot = selectRobot(selectionAlg);
+            ANN newANN = new ANN(crossoverAlg, firstRobot.getANN(), secondRobot.getANN());
+            newANN.mutate(0.05);
+
+            newGeneration[i] =  new Robot(this, String.valueOf(numRobotsInHistory++), newANN);
+        }
+
+        robots = newGeneration;
+    }
+
+    private Robot selectRobot(SelectionAlg selectionAlg){
+        switch (selectionAlg){
+            case RANK -> {
+                return robots[0];
+            }
+            case ROULETTE -> {
+                return robots[0];
+            }
+            case TOURNAMENT -> {
+                Robot bestRobot = robots[(int)(Math.random()* robots.length)];
+                for (int i = 1; i < 5; i++) {
+                    Robot newRobot = robots[(int) (Math.random()* robots.length)];
+                    if(newRobot.getFitness() > bestRobot.getFitness())
+                        bestRobot = newRobot;
+                }
+                return bestRobot;
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + selectionAlg);
+        }
+    }
+
+    public void updateRobots() {
+        for (Robot robot : robots) {
             robot.update();
         }
     }
@@ -124,7 +185,9 @@ public class World {
     public double getStartAngle() {
         return START_ANGLE;
     }
-    public double[][] getEnvironment(){ return ENVIRONMENT; }
+    public double[][] getEnvironment(){
+        return ENVIRONMENT;
+    }
     public double getDustResolution() {
         return DUST_RESOLUTION;
     }
@@ -134,10 +197,7 @@ public class World {
     public void setTimeStep(double timeStep){
         this.timeStep = timeStep;
     }
-    public int getPopulationSize() {
-        return POPULATION_SIZE;
-    }
-    public Population getPopulation() {
-        return population;
+    public Robot[] getRobots() {
+        return robots;
     }
 }

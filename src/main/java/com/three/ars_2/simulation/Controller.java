@@ -24,13 +24,17 @@ public class Controller implements Runnable {
             case 84 -> incrementRobotParameters(robot, SPEED_INCREMENT, SPEED_INCREMENT); // T
             case 71 -> incrementRobotParameters(robot, -SPEED_INCREMENT, -SPEED_INCREMENT); // G
             case 88 -> robot.setWheelSpeeds(0, 0); // X
-            case 32 -> robot.reset(); // X
+            case 32 -> robot.initialise(); // X
         }
     }
 
     public void run() {
         WORLD.runEvolution();
-        WORLD.setTimeStep(1.0/60);
+        WORLD.createNewGeneration(null, null, 1, 1);
+        for (Robot robot: WORLD.getRobots()){
+            robot.initialise();
+        }
+        WORLD.setTimeStep(1.0/30);
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* WORLD.getTimeStep())), event -> {
             WORLD.updateRobots();
             mainScene.drawMovables();
