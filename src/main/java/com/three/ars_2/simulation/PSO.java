@@ -35,6 +35,7 @@ public class PSO {
 
 
         Random random = new Random();
+        random.setSeed(5);
         ArrayList<Particle> particles = new ArrayList<>();
         Particle.global_best_pos = new Vector2D(random.uniform(x_range.x, x_range.y), random.uniform(y_range.x, y_range.y));
         for(int i=0;i<num_particles;i++){

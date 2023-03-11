@@ -22,7 +22,7 @@ public class PSO_evolution {
         numGenerations = 200;
         numSurvivors = 20;
         min_param = 0.0;
-        max_param = 5.0;
+        max_param = 3.0;
 
         pso_particles = 20;
         pso_iter = 200;
@@ -49,6 +49,12 @@ public class PSO_evolution {
             System.out.println(performance[i]);
          }
 
+        double[] test1 = {6,7,2,3};
+        int[] test = getSortedIndices(test1);
+        for (int i = 0; i < test.length; i++) {
+            System.out.println(test[i]);
+        }
+
         
     }
 
@@ -73,6 +79,7 @@ public class PSO_evolution {
 
     public static int[] commitGenocide(){
         int[] ranked_psos = getSortedIndices(performance);
+        //return Arrays.copyOfRange(ranked_psos, performance.length-numSurvivors, performance.length);
         return Arrays.copyOfRange(ranked_psos, 0, numSurvivors);
     }
 
