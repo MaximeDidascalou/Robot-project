@@ -14,13 +14,14 @@ public class Robot implements Comparable<Robot>{
     private static final double[] SENSOR_ANGLES = new double[NUM_SENSORS]; //Sensor angles, relative to bot angle
     private static final double DIAMETER = 0.5; //diameter of the robot
     private static final double WHEEL_DISTANCE = 0.4; //length between wheels
-    private static final double MAX_WHEEL_SPEED = 1.0; //maximum speed of the wheels
+    private static final double MAX_WHEEL_SPEED = 2.0; //maximum speed of the wheels
     private static final boolean DO_ACCELERATION = true;
-    private static final double MAX_ACCELERATION = .5;
+    private static final double MAX_ACCELERATION = 5.0;
+    private static final double[] FITNESS_WEIGHTS = new double[]{1.0, -0.0, -1.0}; //weights for weighted fitness sum [dust weight, wall weight, turning weight]
 
     private final World WORLD; //reference to the world it is in
     private final String NAME;
-    private final NeuralNet NEURAL_NET;
+    private final ANN ANN;
 
     private double[] position = new double[2];
     private double angle;
@@ -28,6 +29,7 @@ public class Robot implements Comparable<Robot>{
     private double[] sensorValues = new double[NUM_SENSORS];;
     private boolean[][] dustIsCollected;
     private int totalDustCollected, ticksInWall, totalTicks;
+    private double summedTurningPenalty, fitness;
 
     static {
         if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
@@ -39,17 +41,29 @@ public class Robot implements Comparable<Robot>{
         }
     }
 
-    Robot(World world, String name, NeuralNet neuralNet){
+    Robot(World world, String name, ANN ann){
         this.WORLD = world;
         this.NAME = name;
-        this.NEURAL_NET = neuralNet;
-
-        this.reset();
+        this.ANN = ann;
     }
 
-    //Construct robot with random NN
-    Robot(World world, String name) {
-        this(world, name, new NeuralNet(new int[]{12, 2}, false));
+    public void initialise(){
+//        initialise(WORLD.getStartPosition(), WORLD.getStartAngle());
+        initialise(new double[]{Math.random()*WORLD.getWidth(),Math.random()* WORLD.getHeight()}, Math.random()*Math.PI*2);
+    }
+
+    public void initialise(double[] position, double angle){
+        this.position[0] = position[0];
+        this.position[1] = position[1];
+        this.angle = angle;
+        updateSensorValues();
+        this.wheelSpeeds = new double[]{0, 0};
+        this.dustIsCollected = new boolean[(int)(WORLD.getWidth()/WORLD.getDustResolution())][(int)(WORLD.getHeight()/WORLD.getDustResolution())];
+        this.totalDustCollected = 0;
+        this.ticksInWall = 0;
+        this.summedTurningPenalty = 0;
+        this.totalTicks = 0;
+        this.fitness = Double.MIN_VALUE;
     }
 
     public void update(){
@@ -60,8 +74,8 @@ public class Robot implements Comparable<Robot>{
         totalTicks++;
     }
 
-    public void updateSensorValues() {
-        // update sensor values
+    // update sensor values
+    private void updateSensorValues() {
         for (int i = 0; i < NUM_SENSORS; i++) {
             sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
         }
@@ -84,8 +98,12 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void updateWheelSpeeds(){
-        double[] newWheelSpeeds = NEURAL_NET.evaluate(sensorValues);
+        double[] adjustedSensorValues = new double[sensorValues.length];
+        Arrays.setAll(adjustedSensorValues, i -> Math.exp(-4 * sensorValues[i] / MAX_SENSOR_DISTANCE));
+        double[] newWheelSpeeds = ANN.evaluate(adjustedSensorValues);
         setWheelSpeeds(newWheelSpeeds[0] * MAX_WHEEL_SPEED, newWheelSpeeds[1] * MAX_WHEEL_SPEED);
+
+        summedTurningPenalty += -Math.pow(Math.abs(wheelSpeeds[0] - wheelSpeeds[1])-1, 2)+1;
     }
 
     public void updatePosition(){
@@ -106,6 +124,8 @@ public class Robot implements Comparable<Robot>{
         }
 
         collisionCheck(newPosition);
+
+        position = newPosition;
     }
 
     private void updateDustCollection(){
@@ -141,8 +161,6 @@ public class Robot implements Comparable<Robot>{
         }
 
         if(collision) ticksInWall++;
-
-        position = newPosition;
     }
 
     private static double[] closestPointOnLine(double x1, double y1, double x2, double y2, double pointX, double pointY) {
@@ -198,12 +216,13 @@ public class Robot implements Comparable<Robot>{
         df.setMaximumFractionDigits(1);
 
         //draw dust
-        g.setFill(GuiSettings.DUST_COLOR);
+//        g.setFill(GuiSettings.DUST_COLOR);
+        g.setFill(GuiSettings.ROBOT_COLOR);
         for (int i = 0; i < dustIsCollected.length; i++) {
             for (int j = 0; j < dustIsCollected[i].length; j++) {
                 if(!dustIsCollected[i][j]){
-                    g.fillOval((i* WORLD.getDustResolution() + WORLD.getDustResolution()/2)*GuiSettings.SCALING - 2,
-                            (j* WORLD.getDustResolution() + WORLD.getDustResolution()/2)*GuiSettings.SCALING - 2, 4, 4);
+                    g.fillOval((i* WORLD.getDustResolution() + WORLD.getDustResolution()/4)*GuiSettings.SCALING,
+                            (j* WORLD.getDustResolution() + WORLD.getDustResolution()/4)*GuiSettings.SCALING, 8, 8);
                 }
             }
         }
@@ -241,8 +260,8 @@ public class Robot implements Comparable<Robot>{
         g.strokeLine(x, y, x + v.x, y + v.y);
     }
 
-    public NeuralNet getNeuralNet(){
-        return NEURAL_NET;
+    public ANN getANN(){
+        return ANN;
     }
 
     public String getName() {
@@ -257,12 +276,18 @@ public class Robot implements Comparable<Robot>{
         return ticksInWall;
     }
 
-    public double getFitness() {
-        return totalDustCollected*WORLD.getDustResolution()*WORLD.getDustResolution()/WORLD.getWidth()/WORLD.getHeight() - 1.0*ticksInWall/totalTicks;
+    public void calculateFitness(){
+        fitness = FITNESS_WEIGHTS[0] * totalDustCollected * WORLD.getDustResolution() * WORLD.getDustResolution() / WORLD.getWidth() / WORLD.getHeight()
+                + FITNESS_WEIGHTS[1] * ticksInWall/totalTicks
+                + FITNESS_WEIGHTS[2] * summedTurningPenalty/totalTicks;
     }
 
-    public double[] getPosition() {
-        return position;
+    public double getFitness() {
+        return fitness;
+    }
+
+    public void setFitness(double fitness) {
+        this.fitness = fitness;
     }
 
     public double[] getWheelSpeeds() {
@@ -293,22 +318,8 @@ public class Robot implements Comparable<Robot>{
         return angle;
     }
 
-    public void reset(){
-        reset(WORLD.getStartPosition(), WORLD.getStartAngle());
-    }
-    public void reset(double[] position, double angle){
-        this.position[0] = position[0];
-        this.position[1] = position[1];
-        this.angle = angle;
-        updateSensorValues();
-        this.wheelSpeeds = new double[]{0, 0};
-        this.dustIsCollected = new boolean[(int)(WORLD.getWidth()/WORLD.getDustResolution())][(int)(WORLD.getHeight()/WORLD.getDustResolution())];
-        this.totalDustCollected = 0;
-        this.ticksInWall = 0;
-        this.totalTicks = 0;
-    }
     @Override
     public int compareTo(Robot otherRobot) {
-        return Double.compare(this.getFitness(), otherRobot.getFitness());
+        return Double.compare(otherRobot.getFitness(),this.getFitness());
     }
 }

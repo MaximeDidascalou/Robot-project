@@ -38,6 +38,7 @@ public class PSO {
         random.setSeed(5);
         ArrayList<Particle> particles = new ArrayList<>();
         Particle.global_best_pos = new Vector2D(random.uniform(x_range.x, x_range.y), random.uniform(y_range.x, y_range.y));
+        Particle.global_best_performance = Double.MAX_VALUE;
         for(int i=0;i<num_particles;i++){
             Vector2D pos = new Vector2D(random.uniform(x_range.x, x_range.y), random.uniform(y_range.x, y_range.y));
             Vector2D vel = new Vector2D(0,0);
@@ -58,9 +59,5 @@ public class PSO {
         //         //System.out.println(v);
         //     }
         // }
-    }
-
-    public void reset(){
-        Particle.global_best_performance = Double.MAX_VALUE;
     }
 }
