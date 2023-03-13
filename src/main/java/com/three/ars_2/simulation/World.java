@@ -10,16 +10,19 @@ import java.util.List;
 
 public class World {
     private final double HEIGHT = 5;
-    private final double WIDTH = 5;
+    private final double WIDTH = 1;
     private double[] START_POSITION = new double[]{0.5,0.5};
     private double START_ANGLE = 0.0;
     private final double[][] ENVIRONMENT = createEnvironment();
     private final double DUST_RESOLUTION = 1.0/8;
 
-    private static final int NUMBER_ROBOTS = 128;
-    private final int NUMBER_GENERATIONS = 128;
+    private static final int NUMBER_ROBOTS = 200;
+    private final int NUMBER_GENERATIONS = 200;
     private final int NUMBER_TRIALS = 8;
-    private final int SIMULATION_SECONDS = 60;
+    private final int SIMULATION_SECONDS = 30;
+
+    private final boolean CROSSOVER = false;
+    private final boolean RANDOM_START_POSITION = false;
 
     enum SelectionAlg {
         RANK,
@@ -77,7 +80,7 @@ public class World {
         System.out.println(" Fitness: " + df.format( robots[0].getFitness()) + " ]");
 
         for (int i = 0; i < NUMBER_GENERATIONS; i++) {
-            createNewGeneration(SelectionAlg.TOURNAMENT, ANN.CrossoverAlg.INTERMEDIATE, NUMBER_ROBOTS,  (int)(NUMBER_ROBOTS * 0.05));
+            createNewGeneration(SelectionAlg.RANK, ANN.CrossoverAlg.INTERMEDIATE, NUMBER_ROBOTS,  (int)(NUMBER_ROBOTS * 0.05));
             runSimulation();
 
             df.setMaximumFractionDigits(0);
@@ -93,8 +96,12 @@ public class World {
     private void initialiseRobots(){
         robots = new Robot[NUMBER_ROBOTS];
         for (int i = 0; i < robots.length; i++) {
-            robots[i] = new Robot(this, String.valueOf(i), new ANN(new int[]{12, 2}, true));
-            robots[i].initialise();
+            robots[i] = new Robot(this, String.valueOf(i), new ANN(new int[]{12,10,8,6,2}, true));
+            if (RANDOM_START_POSITION){
+                robots[i].initialise();
+            } else {
+                robots[i].initialise(new double[]{WIDTH/2,HEIGHT/2}, 0.0);
+            }
         }
         numRobotsInHistory = NUMBER_ROBOTS;
     }
@@ -103,7 +110,11 @@ public class World {
         for (Robot robot: robots){
             double fitnessSum = 0;
             for (int trial = 0; trial < NUMBER_TRIALS; trial++) {
-                robot.initialise();
+                if (RANDOM_START_POSITION){
+                    robot.initialise();
+                } else {
+                    robot.initialise(new double[]{WIDTH/2,HEIGHT/2}, 0.0);
+                }
 
                 for (int tick = 0; tick < SIMULATION_SECONDS/ timeStep; tick++) {
                     robot.update();
@@ -118,30 +129,35 @@ public class World {
 
     public void createNewGeneration(SelectionAlg selectionAlg, ANN.CrossoverAlg crossoverAlg, int generationSize, int elitismCount) {
         Robot[] newGeneration = new Robot[generationSize];
-        Robot[] sorted_robots = Arrays.copyOf(robots,robots.length);
-        if (selectionAlg == SelectionAlg.RANK){
-            Arrays.sort(sorted_robots);
-        }
 
         elitismCount = Math.min(generationSize, elitismCount);
         if (elitismCount > 0) {
             System.arraycopy(robots, 0, newGeneration, 0, elitismCount);
         }
 
-        for (int i = elitismCount; i < generationSize; i++) {
+        if (CROSSOVER){
+            for (int i = elitismCount; i < generationSize; i++) {
 
-            Robot firstRobot = selectRobot(selectionAlg, sorted_robots);
-            Robot secondRobot = selectRobot(selectionAlg, sorted_robots);
-            ANN newANN = new ANN(crossoverAlg, firstRobot.getANN(), secondRobot.getANN());
-            newANN.mutate(0.05);
+                Robot firstRobot = selectRobot(selectionAlg);
+                Robot secondRobot = selectRobot(selectionAlg);
+                ANN newANN = new ANN(crossoverAlg, firstRobot.getANN(), secondRobot.getANN());
+                newANN.mutate(0.05);
 
-            newGeneration[i] =  new Robot(this, String.valueOf(numRobotsInHistory++), newANN);
+                newGeneration[i] =  new Robot(this, String.valueOf(numRobotsInHistory++), newANN);
+            }
+        } else {
+            for (int i = elitismCount; i < generationSize; i++) {
+                Robot selected_robot = selectRobot(selectionAlg);
+                ANN newANN = selected_robot.getANN();
+                newANN.mutate((i-elitismCount)/ (generationSize-elitismCount)); // _relative
+                newGeneration[i] =  new Robot(this, String.valueOf(numRobotsInHistory++), newANN);
+            }
+
         }
-
         robots = newGeneration;
     }
 
-    private Robot selectRobot(SelectionAlg selectionAlg, Robot[] sorted_robots){
+    private Robot selectRobot(SelectionAlg selectionAlg){
         switch (selectionAlg){
             case RANK -> {
                 double sum_rank = 0;
@@ -153,7 +169,7 @@ public class World {
                 for (int i = 0; i<robots.length;i++){
                     cumsum_rank += 1 - (i+1)/sum_rank;
                     if (unif < cumsum_rank){
-                        return sorted_robots[i];
+                        return robots[i];
                     }
                 }
 

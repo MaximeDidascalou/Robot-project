@@ -150,6 +150,21 @@ public class ANN {
         }
     }
 
+    public void mutate_relative(double mutationRate){
+        for (int i = 0; i < weights.length; i++) {
+            for (int j = 0; j < weights[i].length; j++) {
+                for (int k = 0; k < weights[i][j].length; k++) {
+                    if(Math.random() < mutationRate){
+                        weights[i][j][k] += 1 * Math.random() - 0.5;
+                    }
+                }
+                if(Math.random() < mutationRate){
+                    biases[i][j] += 1 * Math.random() - 0.5;
+                }
+            }
+        }
+    }
+
     private static double sigmoid(double input){
         return 1/(1+Math.exp(-input));
     }
