@@ -23,9 +23,12 @@ public class World {
 
     enum SelectionAlg {
         RANK,
+        PROPORTIONATE,
         ROULETTE,
         TOURNAMENT
     }
+
+    // private final int NUMBER_PARENTS = (int) (NUMBER_ROBOTS * 0.15);
 
 
     private double timeStep;
@@ -115,6 +118,10 @@ public class World {
 
     public void createNewGeneration(SelectionAlg selectionAlg, ANN.CrossoverAlg crossoverAlg, int generationSize, int elitismCount) {
         Robot[] newGeneration = new Robot[generationSize];
+        Robot[] sorted_robots = Arrays.copyOf(robots,robots.length);
+        if (selectionAlg == SelectionAlg.RANK){
+            Arrays.sort(sorted_robots);
+        }
 
         elitismCount = Math.min(generationSize, elitismCount);
         if (elitismCount > 0) {
@@ -123,8 +130,8 @@ public class World {
 
         for (int i = elitismCount; i < generationSize; i++) {
 
-            Robot firstRobot = selectRobot(selectionAlg);
-            Robot secondRobot = selectRobot(selectionAlg);
+            Robot firstRobot = selectRobot(selectionAlg, sorted_robots);
+            Robot secondRobot = selectRobot(selectionAlg, sorted_robots);
             ANN newANN = new ANN(crossoverAlg, firstRobot.getANN(), secondRobot.getANN());
             newANN.mutate(0.05);
 
@@ -134,9 +141,38 @@ public class World {
         robots = newGeneration;
     }
 
-    private Robot selectRobot(SelectionAlg selectionAlg){
+    private Robot selectRobot(SelectionAlg selectionAlg, Robot[] sorted_robots){
         switch (selectionAlg){
             case RANK -> {
+                double sum_rank = 0;
+                for (int i = 1; i<robots.length+1;i++){
+                    sum_rank += i;
+                }
+                double unif = Math.random();
+                double cumsum_rank = 0;
+                for (int i = 0; i<robots.length;i++){
+                    cumsum_rank += 1 - (i+1)/sum_rank;
+                    if (unif < cumsum_rank){
+                        return sorted_robots[i];
+                    }
+                }
+
+                return robots[0];
+            }
+            case PROPORTIONATE -> {
+                double sum_fitness = 0; 
+                for (int i = 0; i<robots.length;i++){
+                    sum_fitness += robots[i].getFitness();
+                }
+                double unif = Math.random();
+                double cumsum_fitness = 0;
+                for (int i = 0; i<robots.length;i++){
+                    cumsum_fitness += robots[i].getFitness()/sum_fitness;
+                    if (unif < cumsum_fitness){
+                        return robots[i];
+                    }
+                }
+
                 return robots[0];
             }
             case ROULETTE -> {
