@@ -31,6 +31,21 @@ public class Robot implements Comparable<Robot>{
     private int totalDustCollected, ticksInWall, totalTicks;
     private double summedTurningPenalty, fitness;
 
+
+    // KALMAN FILTER PARAMETERS;
+
+    private double[][] state_guess = new double[3][1];
+    private double[][] state_true = new double[3][1];
+    private double[][] covariance = new double[][]{{0.1,0,0},
+                                                   {0,0.1,0},
+                                                   {0,0,0.1}};
+    private double[][] R = new double[][]{{0.1,0,0},
+                                          {0,0.1,0},
+                                          {0,0,0.1}};
+    private double[][] Q = new double[][]{{0.1,0,0},
+                                          {0,0.1,0},
+                                          {0,0,0.1}};
+
     static {
         if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
             double angleInterval = 2*Math.PI/ NUM_SENSORS;
@@ -64,6 +79,12 @@ public class Robot implements Comparable<Robot>{
         this.summedTurningPenalty = 0;
         this.totalTicks = 0;
         this.fitness = Double.MIN_VALUE;
+
+        // KALMAN
+        
+        state_guess = new double[][]{{position[0]},{position[1]},{angle}};
+        state_true = new double[][]{{position[0]},{position[1]},{angle}};
+
     }
 
     public void update(){
@@ -80,6 +101,7 @@ public class Robot implements Comparable<Robot>{
             sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
         }
     }
+
 
     private double calculateSensorValue(double sensorAngle) {
         double sensorX = position[0] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.cos(sensorAngle);
@@ -126,6 +148,98 @@ public class Robot implements Comparable<Robot>{
         collisionCheck(newPosition);
 
         position = newPosition;
+
+        // KALMAN
+
+        state_true = new double[][]{{position[0]}, {position[1]}, {angle}};
+
+        // prediction:
+        double[][] action = new double[][]{{wheelSpeeds[0]}, 
+                                           {wheelSpeeds[1]}};
+
+        double[][] B = new double[][]{{WORLD.getTimeStep() * Math.sin(state_guess[2][0]), 0},
+                                      {WORLD.getTimeStep() * Math.sin(state_guess[2][0]), 0},
+                                      {0, WORLD.getTimeStep()}};
+
+        state_guess = addMatrix(state_guess, multiplyMatrix(B,action),false);
+        covariance = addMatrix(covariance, R,false);
+
+        // correction:
+        double[][] I = new double[][]{{1,0,0},
+                                      {0,1,0},
+                                      {0,0,1}};
+        double[][] z = getZ();
+        double[][] K = multiplyMatrix(covariance, inverseDiag(addMatrix(covariance, Q,false)));
+        state_guess = addMatrix(state_guess, multiplyMatrix(K, addMatrix(z, state_guess,true)),false);
+        covariance = multiplyMatrix(addMatrix(I, K, true), covariance);
+    }
+
+    private double[][] getZ(){
+        return state_guess;
+    }
+
+    private double[][] inverseDiag(double X[][]){
+        int i;
+        int row = X.length;
+        int col = X[0].length;
+        if (row != col) {
+            System.out.println(
+                "\nMatrix not square");
+            return null;
+        }
+        double inverse[][] = new double[row][col];
+        for (i=0; i<row; i++){
+            inverse[i][i] = 1/inverse[i][i];
+        }
+        return inverse;
+    }
+
+    private double[][] multiplyMatrix(double M1[][], double M2[][]){
+        int i, j, k;
+
+        int row1 = M1.length;
+        int col1 = M1[0].length;
+
+        int row2 = M2.length;
+        int col2 = M2[0].length;
+
+        if (row2 != col1) {
+            System.out.println(
+                "\nMultiplication Not Possible");
+            return null;
+        }
+        double product[][] = new double[row1][col2];
+        for (i = 0; i < row1; i++) {
+            for (j = 0; j < col2; j++) {
+                for (k = 0; k < row2; k++)
+                    product[i][j] += M1[i][k] * M2[k][j];
+            }
+        }
+ 
+        return product;
+    }
+
+    private double[][] addMatrix(double[][] M1, double[][] M2, boolean subtract){
+        int i, j;
+
+        int row1 = M1.length;
+        int col1 = M1[0].length;
+
+        int row2 = M2.length;
+        int col2 = M2[0].length;
+
+        if (row1 != row2 || col1 != col2) {
+            System.out.println(
+                "\nAddition Not Possible");
+            return null;
+        }
+        double sum[][] = new double[row1][col1];
+        for (i = 0; i < row1; i++) {
+            for (j = 0; j < col1; j++) {
+                sum[i][j] = M1[i][j] + (M2[i][j] * (subtract ? -1 : 1));
+            }
+        }
+        return sum;
     }
 
     private void updateDustCollection(){
