@@ -64,14 +64,28 @@ public class World {
     }
 
     private double[][] createLandmarks(){
-        List<double[]> landmarks = new ArrayList<>();
+        List<double[]> landmarks = new ArrayList<>(); // {x, y, signature}
+        //landmarks.add(new double[] {ENVIRONMENT[0][0], ENVIRONMENT[0][1], 1});
+        //landmarks.add(new double[] {ENVIRONMENT[0][2], ENVIRONMENT[0][3], 2});
         double signature = 1;
         for (int i = 0; i < ENVIRONMENT.length; i++){
+            double[] wall = ENVIRONMENT[i];
             for (int j = 0; j < 3; j+=2){
-                
+                boolean addToLandmarks = true;
+                for (int k =0; k < landmarks.size(); k++){
+                    if ((wall[j] == landmarks.get(k)[0] && wall[j+1] == landmarks.get(k)[1]) ||
+                        (wall[j] > WIDTH || wall[j] < 0 || wall[j+1] > HEIGHT || wall[j+1] < 0)) {
+                        addToLandmarks = false;
+                        break;
+                    }
+                }
+                if (addToLandmarks){
+                    landmarks.add(new double[] {wall[j], wall[j+1], signature});
+                    signature++;
+                }
             }
         }
-
+        return landmarks.toArray(new double[0][]);
     }
 
     public void runEvolution(Robot[] seedRobots) {
