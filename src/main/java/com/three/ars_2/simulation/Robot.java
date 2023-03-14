@@ -34,6 +34,8 @@ public class Robot implements Comparable<Robot>{
 
     // KALMAN FILTER PARAMETERS;
 
+    private double velocity;
+    private double omega;
     private double[][] state_guess = new double[3][1];
     private double[][] state_true = new double[3][1];
     private double[][] covariance = new double[][]{{0.1,0,0},
@@ -146,21 +148,25 @@ public class Robot implements Comparable<Robot>{
         }
 
         collisionCheck(newPosition);
-
         position = newPosition;
+    }
 
-        // KALMAN
-
-        state_true = new double[][]{{position[0]}, {position[1]}, {angle}};
-
+    public void updatePositionKalman(){
         // prediction:
-        double[][] action = new double[][]{{wheelSpeeds[0]}, 
-                                           {wheelSpeeds[1]}};
+        double[][] action = new double[][]{{velocity}, 
+                                           {omega}};
 
-        double[][] B = new double[][]{{WORLD.getTimeStep() * Math.sin(state_guess[2][0]), 0},
-                                      {WORLD.getTimeStep() * Math.sin(state_guess[2][0]), 0},
+        double[][] B = new double[][]{{WORLD.getTimeStep() * Math.cos(angle), 0},
+                                      {WORLD.getTimeStep() * Math.sin(angle), 0},
                                       {0, WORLD.getTimeStep()}};
 
+        state_true = addMatrix(state_true, multiplyMatrix(B,action),false);
+        angle = state_true[0][2];
+
+        double[] newPosition = new double[] {state_true[0][0], state_true[1][0]};
+        collisionCheck(newPosition);
+        position = newPosition;
+        
         state_guess = addMatrix(state_guess, multiplyMatrix(B,action),false);
         covariance = addMatrix(covariance, R,false);
 
@@ -175,6 +181,15 @@ public class Robot implements Comparable<Robot>{
     }
 
     private double[][] getZ(){
+        for (double[] landmark : WORLD.getLandmarks()) {
+
+            double r = Math.sqrt(Math.pow(position[0] - landmark[0], 2) + Math.pow(position[1] - landmark[1], 2)); // + noise
+            double bearing = Math.atan2(position[1] - landmark[1], position[0] - landmark[0]) - angle; // + noise
+            if (r<MAX_SENSOR_DISTANCE) {
+                
+            }
+        }
+
         return state_guess;
     }
 
