@@ -14,6 +14,7 @@ public class World {
     private double[] START_POSITION = new double[]{0.5,0.5};
     private double START_ANGLE = 0.0;
     private final double[][] ENVIRONMENT = createEnvironment();
+    private final double[][] LANDMARKS = createLandmarks();
     private final double DUST_RESOLUTION = 1.0/8;
 
     private static final int NUMBER_ROBOTS = 128;
@@ -60,6 +61,17 @@ public class World {
 //        environment.add(new double[] {2, 3, 2, 4});
 
         return environment.toArray(new double[0][]);
+    }
+
+    private double[][] createLandmarks(){
+        List<double[]> landmarks = new ArrayList<>();
+        double signature = 1;
+        for (int i = 0; i < ENVIRONMENT.length; i++){
+            for (int j = 0; j < 3; j+=2){
+                
+            }
+        }
+
     }
 
     public void runEvolution(Robot[] seedRobots) {
@@ -237,6 +249,9 @@ public class World {
     }
     public double[][] getEnvironment(){
         return ENVIRONMENT;
+    }
+    public double[][] getLandmarks(){
+        return LANDMARKS;
     }
     public double getDustResolution() {
         return DUST_RESOLUTION;
