@@ -9,29 +9,26 @@ import java.util.Arrays;
 import java.util.List;
 
 public class World {
-    private final double HEIGHT = 5;
-    private final double WIDTH = 1;
+    private final double HEIGHT = 6;
+    private final double WIDTH = 6;
     private double[] START_POSITION = new double[]{0.5,0.5};
     private double START_ANGLE = 0.0;
     private final double[][] ENVIRONMENT = createEnvironment();
     private final double DUST_RESOLUTION = 1.0/8;
 
-    private static final int NUMBER_ROBOTS = 200;
-    private final int NUMBER_GENERATIONS = 200;
+    private static final int NUMBER_ROBOTS = 128;
+    private final int NUMBER_GENERATIONS = 64;
     private final int NUMBER_TRIALS = 8;
-    private final int SIMULATION_SECONDS = 30;
+    private final int SIMULATION_SECONDS = 60;
 
-    private final boolean CROSSOVER = false;
-    private final boolean RANDOM_START_POSITION = false;
+    private final boolean CROSSOVER = true;
+    private final boolean RANDOM_START_POSITION = true;
 
     enum SelectionAlg {
         RANK,
         PROPORTIONATE,
-        ROULETTE,
         TOURNAMENT
     }
-
-    // private final int NUMBER_PARENTS = (int) (NUMBER_ROBOTS * 0.15);
 
 
     private double timeStep;
@@ -51,10 +48,10 @@ public class World {
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
 
-//        environment.add(new double[] {0, 2, 1, 2});
-//        environment.add(new double[] {2, 2, 3, 2});
-//        environment.add(new double[] {1, 4, 2, 4});
-//        environment.add(new double[] {1, 2, 1, 4});
+        environment.add(new double[] {2, 2, 2, 4});
+        environment.add(new double[] {2, 4, 4, 4});
+        environment.add(new double[] {4, 4, 4, 2});
+        environment.add(new double[] {4, 2, 2, 2});
 
 //        environment.add(new double[] {1, 1, 1, 3});
 //        environment.add(new double[] {1, 2, 3, 2});
@@ -65,42 +62,48 @@ public class World {
         return environment.toArray(new double[0][]);
     }
 
-    public void runEvolution() {
+    public void runEvolution(Robot[] seedRobots) {
         DecimalFormat df = new DecimalFormat();
         timeStep = 1.0/4;
 
-        initialiseRobots();
-        runSimulation();
+        this.robots = seedRobots;
 
-        df.setMaximumFractionDigits(0);
-        System.out.print("[ Starting Generation | Best robot: " + robots[0].getName()
-                + " | Dust collected: " + df.format(100*robots[0].getTotalDustCollected() * DUST_RESOLUTION * DUST_RESOLUTION / WIDTH / HEIGHT)
-                + "% |");
+        runSimulation();
+        double averageFitness = 0;
+        for (Robot robot: robots){
+            averageFitness += robot.getFitness();
+        }
+        averageFitness = averageFitness/robots.length;
+
         df.setMaximumFractionDigits(3);
-        System.out.println(" Fitness: " + df.format( robots[0].getFitness()) + " ]");
+        System.out.println("[ Starting Generation | Average fitness: " + averageFitness +
+                " | Best robot: " + robots[0].getName() +
+                " | Fitness: " + df.format( robots[0].getFitness()) + " ]");
 
         for (int i = 0; i < NUMBER_GENERATIONS; i++) {
-            createNewGeneration(SelectionAlg.RANK, ANN.CrossoverAlg.INTERMEDIATE, NUMBER_ROBOTS,  (int)(NUMBER_ROBOTS * 0.05));
+            createNewGeneration(SelectionAlg.TOURNAMENT, ANN.CrossoverAlg.INTERMEDIATE, NUMBER_ROBOTS,  (int)(NUMBER_ROBOTS * 0.05));
             runSimulation();
+            averageFitness = 0;
+            for (Robot robot: robots){
+                averageFitness += robot.getFitness();
+            }
+            averageFitness = averageFitness/robots.length;
 
-            df.setMaximumFractionDigits(0);
-            System.out.print("[ Generation: " + (i+1)
-                    + " | Best robot: " + robots[0].getName()
-                    + " | Dust collected: " + df.format(100*robots[0].getTotalDustCollected() * DUST_RESOLUTION * DUST_RESOLUTION / WIDTH / HEIGHT)
-                    + "% |");
             df.setMaximumFractionDigits(3);
-            System.out.println(" Fitness: " + df.format( robots[0].getFitness()) + " ]");
+            System.out.println("[ Generation: " + (i+1) +" | Average fitness: " + averageFitness +
+                    " | Best robot: " + robots[0].getName() +
+                    " | Fitness: " + df.format( robots[0].getFitness()) + " ]");
         }
     }
 
-    private void initialiseRobots(){
+    public void initialiseRobots(){
         robots = new Robot[NUMBER_ROBOTS];
         for (int i = 0; i < robots.length; i++) {
-            robots[i] = new Robot(this, String.valueOf(i), new ANN(new int[]{12,10,8,6,2}, true));
+            robots[i] = new Robot(this, String.valueOf(i), new ANN(new int[]{12, 20, 2}, true));
             if (RANDOM_START_POSITION){
                 robots[i].initialise();
             } else {
-                robots[i].initialise(new double[]{WIDTH/2,HEIGHT/2}, 0.0);
+                robots[i].initialise(START_POSITION, START_ANGLE);
             }
         }
         numRobotsInHistory = NUMBER_ROBOTS;
@@ -136,8 +139,8 @@ public class World {
         }
 
         if (CROSSOVER){
-            for (int i = elitismCount; i < generationSize; i++) {
-
+            for (int i = elitismCount; i < generationSize; i++)
+            {
                 Robot firstRobot = selectRobot(selectionAlg);
                 Robot secondRobot = selectRobot(selectionAlg);
                 ANN newANN = new ANN(crossoverAlg, firstRobot.getANN(), secondRobot.getANN());
@@ -146,10 +149,11 @@ public class World {
                 newGeneration[i] =  new Robot(this, String.valueOf(numRobotsInHistory++), newANN);
             }
         } else {
-            for (int i = elitismCount; i < generationSize; i++) {
+            for (int i = elitismCount; i < generationSize; i++)
+            {
                 Robot selected_robot = selectRobot(selectionAlg);
                 ANN newANN = selected_robot.getANN();
-                newANN.mutate((i-elitismCount)/ (generationSize-elitismCount)); // _relative
+                newANN.mutate((i-elitismCount)/(1.0*generationSize-elitismCount)); // _relative
                 newGeneration[i] =  new Robot(this, String.valueOf(numRobotsInHistory++), newANN);
             }
 
@@ -160,15 +164,12 @@ public class World {
     private Robot selectRobot(SelectionAlg selectionAlg){
         switch (selectionAlg){
             case RANK -> {
-                double sum_rank = 0;
-                for (int i = 1; i<robots.length+1;i++){
-                    sum_rank += i;
-                }
-                double unif = Math.random();
-                double cumsum_rank = 0;
+                double summedRank = (robots.length * (robots.length + 1))/2.0;
+                double random = Math.random();
+                double cumSumRank = 0;
                 for (int i = 0; i<robots.length;i++){
-                    cumsum_rank += 1 - (i+1)/sum_rank;
-                    if (unif < cumsum_rank){
+                    cumSumRank += 1 - (i+1)/ summedRank;
+                    if (random < cumSumRank){
                         return robots[i];
                     }
                 }
@@ -176,27 +177,24 @@ public class World {
                 return robots[0];
             }
             case PROPORTIONATE -> {
-                double sum_fitness = 0; 
-                for (int i = 0; i<robots.length;i++){
-                    sum_fitness += robots[i].getFitness();
+                double summedFitness = 0;
+                for (Robot robot : robots) {
+                    summedFitness += robot.getFitness();
                 }
-                double unif = Math.random();
-                double cumsum_fitness = 0;
-                for (int i = 0; i<robots.length;i++){
-                    cumsum_fitness += robots[i].getFitness()/sum_fitness;
-                    if (unif < cumsum_fitness){
-                        return robots[i];
+                double random = Math.random();
+                double cumSumFitness = 0;
+                for (Robot robot : robots) {
+                    cumSumFitness += robot.getFitness() / summedFitness;
+                    if (random < cumSumFitness) {
+                        return robot;
                     }
                 }
 
                 return robots[0];
             }
-            case ROULETTE -> {
-                return robots[0];
-            }
             case TOURNAMENT -> {
                 Robot bestRobot = robots[(int)(Math.random()* robots.length)];
-                for (int i = 1; i < 5; i++) {
+                for (int i = 1; i < 8; i++) {
                     Robot newRobot = robots[(int) (Math.random()* robots.length)];
                     if(newRobot.getFitness() > bestRobot.getFitness())
                         bestRobot = newRobot;

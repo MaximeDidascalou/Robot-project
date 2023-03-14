@@ -57,11 +57,7 @@ public class MainScene extends Scene {
         }
     }
     public void addListeners(){
-        this.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> {
-            for(Robot robot: WORLD.getRobots()) {
-                controller.updateRobotParameters(robot, keyEvent.getCode().getCode());
-            }
-        });
+        this.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> controller.keyPressed(keyEvent.getCode().getCode()));
     }
     public void createControlDisplays() {
         for (Robot robot : WORLD.getRobots()) {

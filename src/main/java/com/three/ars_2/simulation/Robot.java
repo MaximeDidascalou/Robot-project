@@ -16,8 +16,8 @@ public class Robot implements Comparable<Robot>{
     private static final double WHEEL_DISTANCE = 0.4; //length between wheels
     private static final double MAX_WHEEL_SPEED = 2.0; //maximum speed of the wheels
     private static final boolean DO_ACCELERATION = true;
-    private static final double MAX_ACCELERATION = 20;
-    private static final double[] FITNESS_WEIGHTS = new double[]{1.0, -0.5,-0.5}; //weights for weighted fitness sum [dust weight, wall weight, turning weight]
+    private static final double MAX_ACCELERATION = 4.0;
+    private static final double[] FITNESS_WEIGHTS = new double[]{1.0, 0.0,-1.0}; //weights for weighted fitness sum [dust weight, wall weight, turning weight]
 
     private final World WORLD; //reference to the world it is in
     private final String NAME;
@@ -99,7 +99,7 @@ public class Robot implements Comparable<Robot>{
 
     public void updateWheelSpeeds(){
         double[] adjustedSensorValues = new double[sensorValues.length];
-        Arrays.setAll(adjustedSensorValues, i -> Math.exp(-8 * sensorValues[i] / MAX_SENSOR_DISTANCE));
+        Arrays.setAll(adjustedSensorValues, i -> Math.exp(-5 * sensorValues[i] / MAX_SENSOR_DISTANCE));
         double[] newWheelSpeeds = ANN.evaluate(adjustedSensorValues);
         setWheelSpeeds(newWheelSpeeds[0] * MAX_WHEEL_SPEED, newWheelSpeeds[1] * MAX_WHEEL_SPEED);
 
