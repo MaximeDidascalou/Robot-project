@@ -40,15 +40,15 @@ public class Robot implements Comparable<Robot>{
     private double omega;
     private double[][] state_guess = new double[3][1];
     private double[][] state_true = new double[3][1];
-    private double[][] covariance = new double[][]{{0.1,0,0},
-                                                   {0,0.1,0},
-                                                   {0,0,0.1}};
-    private double[][] R = new double[][]{{0.1,0,0},
-                                          {0,0.1,0},
-                                          {0,0,0.1}};
-    private double[][] Q = new double[][]{{0.1,0,0},
-                                          {0,0.1,0},
-                                          {0,0,0.1}};
+    private double[][] covariance = new double[][]{{0.00001,0,0},
+                                                   {0,0.00001,0},
+                                                   {0,0,0.00001}};
+    private double[][] R = new double[][]{{0.000001,0,0},
+                                          {0,0.000001,0},
+                                          {0,0,0.000001}};
+    private double[][] Q = new double[][]{{0.00001,0,0},
+                                          {0,0.00001,0},
+                                          {0,0,0.00001}};
 
     static {
         if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
@@ -88,6 +88,8 @@ public class Robot implements Comparable<Robot>{
         
         state_guess = new double[][]{{position[0]},{position[1]},{angle}};
         state_true = new double[][]{{position[0]},{position[1]},{angle}};
+        velocity = 0.3;
+        omega = 0.2;
 
     }
 
@@ -169,7 +171,7 @@ public class Robot implements Comparable<Robot>{
         for (int i = 0; i<3; i++){
             state_true[i][0] += (r.nextGaussian() * Math.sqrt(R[i][i]));
         }
-        angle = state_true[0][2];
+        angle = state_true[2][0];
 
         double[] newPosition = new double[] {state_true[0][0], state_true[1][0]};
         collisionCheck(newPosition);
@@ -196,7 +198,7 @@ public class Robot implements Comparable<Robot>{
     private double[][] getZ(){
         //List<double[]> landmarksInRange = new ArrayList<>();
         int numLandmarks = 0;
-        double[][] observed_state;
+        double[][] observed_state = new double[3][1];
         for (double[] landmark : WORLD.getLandmarks()) {
 
             double r = Math.sqrt(Math.pow(position[0] - landmark[0], 2) + Math.pow(position[1] - landmark[1], 2));
@@ -208,7 +210,11 @@ public class Robot implements Comparable<Robot>{
         }
         //if (landmarksInRange.size() > 1){
         if (numLandmarks > 1){
-            observed_state = state_true;
+            //System.arraycopy(state_true, 0, observed_state, 0, state_true.length);
+            for (int i = 0; i < 3; i++){
+                observed_state[i][0] = state_true[i][0];
+            }
+            
         //} else if (landmarksInRange.size() == 1) {
         } else {
             return null;

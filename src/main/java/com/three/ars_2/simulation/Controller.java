@@ -8,33 +8,54 @@ import javafx.util.Duration;
 
 public class Controller implements Runnable {
     private final double TIME_STEP = 1.0/30;
-    private final double SPEED_INCREMENT = 0.1;
+    private final double SPEED_INCREMENT = 0.01;
+    private final double OMEGA_INCREMENT = 0.01;
     private final World WORLD = new World();
     private MainScene mainScene;
 
     private void incrementRobotParameters(Robot robot, double incrementLeft, double incrementRight){
-        robot.setVW( robot.getVW()[0] + incrementLeft, robot.getVW()[1] + incrementRight);
+        robot.setVW(robot.getVW()[0] + incrementLeft, robot.getVW()[1] + incrementRight);
     }
 
-    public void updateRobotParameters(Robot robot, int keyPress){
+    public void keyPressed(int keyPress){
         switch (keyPress) {
-            case 87 -> incrementRobotParameters(robot, SPEED_INCREMENT, 0.0); // W
-            case 83 -> incrementRobotParameters(robot, -SPEED_INCREMENT, 0.0); // S
-            case 79 -> incrementRobotParameters(robot, 0.0, SPEED_INCREMENT); // O
-            case 76 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // L
-            case 88 -> robot.setVW(0, 0); // X
+            case 87 -> { // W
+                for(Robot robot: WORLD.getRobots()){
+                    incrementRobotParameters(robot, SPEED_INCREMENT, 0.0);
+                }
+            }
+            case 83 -> { // S
+                for(Robot robot: WORLD.getRobots()){
+                    incrementRobotParameters(robot, -SPEED_INCREMENT, 0.0);
+                }
+            }
+            case 79 -> { // O
+                for(Robot robot: WORLD.getRobots()){
+                    incrementRobotParameters(robot, 0.0, OMEGA_INCREMENT);
+                }
+            }
+            case 76 -> { // L
+                for(Robot robot: WORLD.getRobots()){
+                    incrementRobotParameters(robot, 0.0, -OMEGA_INCREMENT);
+                }
+            }
+            case 88 -> { // X
+                for(Robot robot: WORLD.getRobots()){
+                    robot.setVW(0, 0);
+                }
+            }
         }
     }
 
     public void runSimulation(double timeStep) {
-        WORLD.setTimeStep(1.0/30);
-        WORLD.initialiseRobots();
         for(Robot robot : WORLD.getRobots()){
             robot.updateKalman();
         }
     }
 
     public void run() {
+        WORLD.setTimeStep(TIME_STEP);
+        WORLD.initialiseRobots();
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* TIME_STEP)), event -> {
             runSimulation(TIME_STEP);
             mainScene.drawMovables();

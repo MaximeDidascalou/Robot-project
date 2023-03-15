@@ -17,7 +17,7 @@ public class World {
     private final double[][] LANDMARKS = createLandmarks();
     private final double DUST_RESOLUTION = 1.0/8;
 
-    private static final int NUMBER_ROBOTS = 128;
+    private static final int NUMBER_ROBOTS = 1;
     private final int NUMBER_GENERATIONS = 64;
     private final int NUMBER_TRIALS = 8;
     private final int SIMULATION_SECONDS = 60;
