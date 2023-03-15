@@ -12,7 +12,7 @@ import java.util.List;
 
 public class Robot implements Comparable<Robot>{
     private static final int NUM_SENSORS = 12;; //number of sensors
-    private static final double MAX_SENSOR_DISTANCE = 2.0; //Maximum distance a sensor can see
+    private static final double MAX_SENSOR_DISTANCE = 1.5; //Maximum distance a sensor can see
     private static final double[] SENSOR_ANGLES = new double[NUM_SENSORS]; //Sensor angles, relative to bot angle
     private static final double DIAMETER = 0.5; //diameter of the robot
     private static final double WHEEL_DISTANCE = 0.4; //length between wheels
@@ -36,19 +36,21 @@ public class Robot implements Comparable<Robot>{
 
     // KALMAN FILTER PARAMETERS;
 
+    private static final boolean DRAWKALMAN = true;
     private double velocity;
     private double omega;
     private double[][] state_guess = new double[3][1];
     private double[][] state_true = new double[3][1];
-    private double[][] covariance = new double[][]{{0.00001,0,0},
-                                                   {0,0.00001,0},
-                                                   {0,0,0.00001}};
-    private double[][] R = new double[][]{{0.000001,0,0},
-                                          {0,0.000001,0},
-                                          {0,0,0.000001}};
-    private double[][] Q = new double[][]{{0.00001,0,0},
+    private double[][] covariance = new double[][]{{0.1,0,0},
+                                                   {0,0.1,0},
+                                                   {0,0,0.1}};
+    private double[][] R = new double[][]{{0.00001,0,0},
                                           {0,0.00001,0},
                                           {0,0,0.00001}};
+    private double[][] Q = new double[][]{{0.5,0,0},
+                                          {0,0.5,0},
+                                          {0,0,0.5}};
+    private double[][] landmarks;
 
     static {
         if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
@@ -181,7 +183,7 @@ public class Robot implements Comparable<Robot>{
         
         state_guess = addMatrix(state_guess, multiplyMatrix(B,action),false);
         covariance = addMatrix(covariance, R,false);
-
+        
         // correction:
         double[][] I = new double[][]{{1,0,0},
                                       {0,1,0},
@@ -189,40 +191,34 @@ public class Robot implements Comparable<Robot>{
         double[][] z = getZ();
         if (z != null) {
             double[][] K = multiplyMatrix(covariance, inverseDiag(addMatrix(covariance, Q,false)));
+
+            System.out.println(addMatrix(covariance, Q,false)[0][0]);
+
             state_guess = addMatrix(state_guess, multiplyMatrix(K, addMatrix(z, state_guess,true)),false);
             covariance = multiplyMatrix(addMatrix(I, K, true), covariance);
+            
         }
         
     }
 
     private double[][] getZ(){
-        //List<double[]> landmarksInRange = new ArrayList<>();
-        int numLandmarks = 0;
+        List<double[]> landmarksInRange = new ArrayList<>();
         double[][] observed_state = new double[3][1];
         for (double[] landmark : WORLD.getLandmarks()) {
-
             double r = Math.sqrt(Math.pow(position[0] - landmark[0], 2) + Math.pow(position[1] - landmark[1], 2));
             //double bearing = Math.atan2(position[1] - landmark[1], position[0] - landmark[0]) - angle;
             if (r<MAX_SENSOR_DISTANCE) {
-                //landmarksInRange.add(new double[] {r, bearing, landmark[0], landmark[1]});
-                numLandmarks++;
+                landmarksInRange.add(new double[] {landmark[0], landmark[1]});
             }
         }
-        //if (landmarksInRange.size() > 1){
-        if (numLandmarks > 1){
-            //System.arraycopy(state_true, 0, observed_state, 0, state_true.length);
+        landmarks = landmarksInRange.toArray(new double[0][]);
+        if (landmarksInRange.size() > 1){
+            java.util.Random r = new java.util.Random();
             for (int i = 0; i < 3; i++){
-                observed_state[i][0] = state_true[i][0];
+                observed_state[i][0] = state_true[i][0] + (r.nextGaussian() * Math.sqrt(Q[i][i]));
             }
-            
-        //} else if (landmarksInRange.size() == 1) {
         } else {
             return null;
-        }
-        // add noise to observed_state
-        java.util.Random r = new java.util.Random();
-        for (int i = 0; i<3; i++){
-            observed_state[i][0] += (r.nextGaussian() * Math.sqrt(Q[i][i]));
         }
         return observed_state;
     }
@@ -236,7 +232,7 @@ public class Robot implements Comparable<Robot>{
                 "\nMatrix not square");
             return null;
         }
-        double inverse[][] = new double[row][col];
+        double[][] inverse = Arrays.stream(X).map(double[]::clone).toArray(double[][]::new);
         for (i=0; i<row; i++){
             inverse[i][i] = 1/inverse[i][i];
         }
@@ -377,42 +373,12 @@ public class Robot implements Comparable<Robot>{
         double y = position[1] * GuiSettings.SCALING;
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(1);
-
-        //draw dust
-//        g.setFill(GuiSettings.DUST_COLOR);
-        g.setFill(GuiSettings.ROBOT_COLOR);
-        for (int i = 0; i < dustIsCollected.length; i++) {
-            for (int j = 0; j < dustIsCollected[i].length; j++) {
-                if(!dustIsCollected[i][j]){
-                    g.fillOval((i* WORLD.getDustResolution() + WORLD.getDustResolution()/4)*GuiSettings.SCALING,
-                            (j* WORLD.getDustResolution() + WORLD.getDustResolution()/4)*GuiSettings.SCALING, 8, 8);
-                }
-            }
-        }
-
-        //draw sensor lines
-        g.setStroke(GuiSettings.SENSOR_COLOR);
-        g.setLineWidth(1.0);
-
-        for (int i = 0; i < NUM_SENSORS; i++) {
-            Vector2D v2 = new Vector2D(angle + SENSOR_ANGLES[i]);
-            v2.multiply((sensorValues[i] + DIAMETER/2) * GuiSettings.SCALING);
-            g.strokeLine(x, y, x + v2.x, y + v2.y);
-        }
-
-        //draw sensor values
-        for(int i = 0; i < NUM_SENSORS; i++) {
-            Vector2D v2 = new Vector2D(angle + SENSOR_ANGLES[i]);
-            v2.multiply(DIAMETER * GuiSettings.SCALING);
-            g.strokeLine(x,y,x + v2.x,y + v2.y);
-            g.strokeText(df.format(sensorValues[i]),x+v2.x,y+v2.y);
-        }
-
+    
         //draw body
         g.setFill(GuiSettings.ROBOT_COLOR);
         g.fillOval(x-radius,y-radius,radius*2,radius*2);
         g.setLineWidth(1);
-
+        
         //draw head
         Vector2D v = new Vector2D(angle);
         v.multiply(radius*1);
@@ -421,6 +387,67 @@ public class Robot implements Comparable<Robot>{
         g.setStroke(GuiSettings.DIRECTION_COLOR);
         g.setLineWidth(2.0);
         g.strokeLine(x, y, x + v.x, y + v.y);
+
+        //draw dust
+        if (!DRAWKALMAN){
+            //        g.setFill(GuiSettings.DUST_COLOR);
+            g.setFill(GuiSettings.ROBOT_COLOR);
+            for (int i = 0; i < dustIsCollected.length; i++) {
+                for (int j = 0; j < dustIsCollected[i].length; j++) {
+                    if(!dustIsCollected[i][j]){
+                        g.fillOval((i* WORLD.getDustResolution() + WORLD.getDustResolution()/4)*GuiSettings.SCALING,
+                                (j* WORLD.getDustResolution() + WORLD.getDustResolution()/4)*GuiSettings.SCALING, 8, 8);
+                    }
+                }
+            }
+
+            //draw sensor lines
+            g.setStroke(GuiSettings.SENSOR_COLOR);
+            g.setLineWidth(1.0);
+
+            for (int i = 0; i < NUM_SENSORS; i++) {
+                Vector2D v2 = new Vector2D(angle + SENSOR_ANGLES[i]);
+                v2.multiply((sensorValues[i] + DIAMETER/2) * GuiSettings.SCALING);
+                g.strokeLine(x, y, x + v2.x, y + v2.y);
+            }
+
+            //draw sensor values
+            for(int i = 0; i < NUM_SENSORS; i++) {
+                Vector2D v2 = new Vector2D(angle + SENSOR_ANGLES[i]);
+                v2.multiply(DIAMETER * GuiSettings.SCALING);
+                g.strokeLine(x,y,x + v2.x,y + v2.y);
+                g.strokeText(df.format(sensorValues[i]),x+v2.x,y+v2.y);
+            }
+        } else {
+            double xK = state_guess[0][0] * GuiSettings.SCALING;
+            double yK = state_guess[1][0] * GuiSettings.SCALING;
+            double angleK = state_guess[2][0];
+
+            //draw Kalman body
+            g.setFill(GuiSettings.K_ROBOT_COLOR);
+            g.fillOval(xK-radius,yK-radius,radius*2,radius*2);
+            g.setLineWidth(1);
+
+            //draw Kalman head
+            Vector2D vK = new Vector2D(angleK);
+            vK.multiply(radius*1);
+    //        g.setFill(GuiSettings.DIRECTION_COLOR);
+    //        g.fillOval(x+v.x-radius/2,y+v.y-radius/2,2*radius/2,2*radius/2);
+            g.setStroke(GuiSettings.DIRECTION_COLOR);
+            g.setLineWidth(2.0);
+            g.strokeLine(xK, yK, xK + vK.x, yK + vK.y);
+
+            //draw sensor lines
+            g.setStroke(GuiSettings.SENSOR_COLOR);
+            g.setLineWidth(1.0);
+
+            for (int i = 0; i < landmarks.length; i++) {
+                double x2 = landmarks[i][0] * GuiSettings.SCALING;
+                double y2 = landmarks[i][1] * GuiSettings.SCALING;
+                g.strokeLine(x, y, x2, y2);
+            }
+            
+        }
     }
 
     public ANN getANN(){
