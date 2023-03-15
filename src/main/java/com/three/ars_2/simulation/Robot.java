@@ -7,6 +7,8 @@ import javafx.scene.canvas.GraphicsContext;
 import java.lang.Math;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Robot implements Comparable<Robot>{
     private static final int NUM_SENSORS = 12;; //number of sensors
@@ -160,7 +162,11 @@ public class Robot implements Comparable<Robot>{
                                       {WORLD.getTimeStep() * Math.sin(angle), 0},
                                       {0, WORLD.getTimeStep()}};
 
-        state_true = addMatrix(state_true, multiplyMatrix(B,action),false);
+        state_true = addMatrix(state_true, multiplyMatrix(B,action),false); // + noise
+        java.util.Random r = new java.util.Random();
+        for (int i = 0; i<3; i++){
+            state_true[i][0] += (r.nextGaussian() * Math.sqrt(R[i][i]));
+        }
         angle = state_true[0][2];
 
         double[] newPosition = new double[] {state_true[0][0], state_true[1][0]};
@@ -175,22 +181,40 @@ public class Robot implements Comparable<Robot>{
                                       {0,1,0},
                                       {0,0,1}};
         double[][] z = getZ();
-        double[][] K = multiplyMatrix(covariance, inverseDiag(addMatrix(covariance, Q,false)));
-        state_guess = addMatrix(state_guess, multiplyMatrix(K, addMatrix(z, state_guess,true)),false);
-        covariance = multiplyMatrix(addMatrix(I, K, true), covariance);
+        if (z != null) {
+            double[][] K = multiplyMatrix(covariance, inverseDiag(addMatrix(covariance, Q,false)));
+            state_guess = addMatrix(state_guess, multiplyMatrix(K, addMatrix(z, state_guess,true)),false);
+            covariance = multiplyMatrix(addMatrix(I, K, true), covariance);
+        }
+        
     }
 
     private double[][] getZ(){
+        //List<double[]> landmarksInRange = new ArrayList<>();
+        int numLandmarks = 0;
+        double[][] observed_state;
         for (double[] landmark : WORLD.getLandmarks()) {
 
-            double r = Math.sqrt(Math.pow(position[0] - landmark[0], 2) + Math.pow(position[1] - landmark[1], 2)); // + noise
-            double bearing = Math.atan2(position[1] - landmark[1], position[0] - landmark[0]) - angle; // + noise
+            double r = Math.sqrt(Math.pow(position[0] - landmark[0], 2) + Math.pow(position[1] - landmark[1], 2));
+            //double bearing = Math.atan2(position[1] - landmark[1], position[0] - landmark[0]) - angle;
             if (r<MAX_SENSOR_DISTANCE) {
-                
+                //landmarksInRange.add(new double[] {r, bearing, landmark[0], landmark[1]});
+                numLandmarks++;
             }
         }
-
-        return state_guess;
+        //if (landmarksInRange.size() > 1){
+        if (numLandmarks > 1){
+            observed_state = state_true;
+        //} else if (landmarksInRange.size() == 1) {
+        } else {
+            return null;
+        }
+        // add noise to observed_state
+        java.util.Random r = new java.util.Random();
+        for (int i = 0; i<3; i++){
+            observed_state[i][0] += (r.nextGaussian() * Math.sqrt(Q[i][i]));
+        }
+        return observed_state;
     }
 
     private double[][] inverseDiag(double X[][]){
