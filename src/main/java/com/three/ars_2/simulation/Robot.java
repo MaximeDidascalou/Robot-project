@@ -132,6 +132,8 @@ public class Robot implements Comparable<Robot>{
         summedTurningPenalty += -Math.pow(Math.abs(wheelSpeeds[0] - wheelSpeeds[1])-1, 2)+1;
     }
 
+    
+
     public void updatePosition(){
         double[] newPosition = new double[2];
 
@@ -153,7 +155,7 @@ public class Robot implements Comparable<Robot>{
         position = newPosition;
     }
 
-    public void updatePositionKalman(){
+    public void updateKalman(){
         // prediction:
         double[][] action = new double[][]{{velocity}, 
                                            {omega}};
@@ -172,6 +174,8 @@ public class Robot implements Comparable<Robot>{
         double[] newPosition = new double[] {state_true[0][0], state_true[1][0]};
         collisionCheck(newPosition);
         position = newPosition;
+        state_true[0][0] = position[0];
+        state_true[1][0] = position[1];
         
         state_guess = addMatrix(state_guess, multiplyMatrix(B,action),false);
         covariance = addMatrix(covariance, R,false);
@@ -456,6 +460,15 @@ public class Robot implements Comparable<Robot>{
             wheelSpeeds[1] = rightSpeed;
         }
         clampWheelSpeeds();
+    }
+
+    public double[] getVW(){
+        return new double[]{velocity, angle};
+    }
+
+    public void setVW(double v, double w){
+        velocity = v;
+        omega = w;
     }
 
     private void clampWheelSpeeds(){

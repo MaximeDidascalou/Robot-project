@@ -7,60 +7,36 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 public class Controller implements Runnable {
+    private final double TIME_STEP = 1.0/30;
     private final double SPEED_INCREMENT = 0.1;
     private final World WORLD = new World();
-    private Robot[] seedRobots;
-    private Timeline timeline;
     private MainScene mainScene;
 
     private void incrementRobotParameters(Robot robot, double incrementLeft, double incrementRight){
-        robot.setWheelSpeeds( robot.getWheelSpeeds()[0] + incrementLeft, robot.getWheelSpeeds()[1] + incrementRight);
+        robot.setVW( robot.getVW()[0] + incrementLeft, robot.getVW()[1] + incrementRight);
     }
 
-    public void keyPressed(int keyPress){
+    public void updateRobotParameters(Robot robot, int keyPress){
         switch (keyPress) {
-//            case 87 -> incrementRobotParameters(robot, SPEED_INCREMENT, 0.0); // W
-//            case 83 -> incrementRobotParameters(robot, -SPEED_INCREMENT, 0.0); // S
-//            case 79 -> incrementRobotParameters(robot, 0.0, SPEED_INCREMENT); // O
-//            case 76 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // L
-//            case 84 -> incrementRobotParameters(robot, SPEED_INCREMENT, SPEED_INCREMENT); // T
-//            case 71 -> incrementRobotParameters(robot, -SPEED_INCREMENT, -SPEED_INCREMENT); // G
-//            case 88 -> robot.setWheelSpeeds(0, 0); // X
-            case 32 -> {
-                for(Robot robot: WORLD.getRobots()){
-                    robot.initialise(); // Space, reset robots
-                }
-            }
-            case 10 -> {
-                timeline.pause();
+            case 87 -> incrementRobotParameters(robot, SPEED_INCREMENT, 0.0); // W
+            case 83 -> incrementRobotParameters(robot, -SPEED_INCREMENT, 0.0); // S
+            case 79 -> incrementRobotParameters(robot, 0.0, SPEED_INCREMENT); // O
+            case 76 -> incrementRobotParameters(robot, 0.0, -SPEED_INCREMENT); // L
+            case 88 -> robot.setVW(0, 0); // X
+        }
+    }
 
-                WORLD.setTimeStep(1.0/4);
-                WORLD.runEvolution(seedRobots);
-                seedRobots = WORLD.getRobots();
-                WORLD.createNewGeneration(null, null, 1, 1);
-                for (Robot robot: WORLD.getRobots()){
-                    robot.initialise();
-                }
-                WORLD.setTimeStep(1.0/30);
-
-                timeline.play();
-            }
+    public void runSimulation(double timeStep) {
+        WORLD.setTimeStep(1.0/30);
+        WORLD.initialiseRobots();
+        for(Robot robot : WORLD.getRobots()){
+            robot.updateKalman();
         }
     }
 
     public void run() {
-        WORLD.setTimeStep(1.0/4);
-        WORLD.initialiseRobots();
-        WORLD.runSimulation();
-        seedRobots = WORLD.getRobots();
-        WORLD.createNewGeneration(null, null, 1, 1);
-        for (Robot robot: WORLD.getRobots()){
-            robot.initialise();
-        }
-        WORLD.setTimeStep(1.0/30);
-
-        timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* WORLD.getTimeStep())), event -> {
-            WORLD.updateRobots();
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis((int)(1000* TIME_STEP)), event -> {
+            runSimulation(TIME_STEP);
             mainScene.drawMovables();
             mainScene.drawControlDisplays();
         }));
