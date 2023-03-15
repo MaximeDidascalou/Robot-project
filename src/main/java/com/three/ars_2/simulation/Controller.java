@@ -8,8 +8,8 @@ import javafx.util.Duration;
 
 public class Controller implements Runnable {
     private final double TIME_STEP = 1.0/30;
-    private final double SPEED_INCREMENT = 0.01;
-    private final double OMEGA_INCREMENT = 0.01;
+    private final double SPEED_INCREMENT = 0.02;
+    private final double OMEGA_INCREMENT = 0.1;
     private final World WORLD = new World();
     private MainScene mainScene;
 

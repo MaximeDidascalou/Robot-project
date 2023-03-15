@@ -146,13 +146,13 @@ public class Robot implements Comparable<Robot>{
             newPosition[1] = position[1] + Math.sin(angle) * wheelSpeeds[0] * WORLD.getTimeStep();
         } else {
             double radius = (WHEEL_DISTANCE / 2) * ((wheelSpeeds[0] + wheelSpeeds[1]) / (wheelSpeeds[1] - wheelSpeeds[0]));
-            double omega = (wheelSpeeds[1] - wheelSpeeds[0]) / WHEEL_DISTANCE;
+            double omega_t = (wheelSpeeds[1] - wheelSpeeds[0]) / WHEEL_DISTANCE;
 
             double[] ICC = {position[0] - radius * Math.sin(angle), position[1] + radius * Math.cos(angle)};
-            newPosition[0] = Math.cos(omega*WORLD.getTimeStep())*(position[0] - ICC[0]) - Math.sin(omega*WORLD.getTimeStep())*(position[1] - ICC[1]) + ICC[0];
-            newPosition[1] = Math.sin(omega*WORLD.getTimeStep())*(position[0] - ICC[0]) + Math.cos(omega*WORLD.getTimeStep())*(position[1] - ICC[1]) + ICC[1];
+            newPosition[0] = Math.cos(omega_t*WORLD.getTimeStep())*(position[0] - ICC[0]) - Math.sin(omega_t*WORLD.getTimeStep())*(position[1] - ICC[1]) + ICC[0];
+            newPosition[1] = Math.sin(omega_t*WORLD.getTimeStep())*(position[0] - ICC[0]) + Math.cos(omega_t*WORLD.getTimeStep())*(position[1] - ICC[1]) + ICC[1];
 
-            angle = angle + omega * WORLD.getTimeStep();
+            angle = angle + omega_t * WORLD.getTimeStep();
         }
 
         collisionCheck(newPosition);
@@ -160,6 +160,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void updateKalman(){
+        System.out.println(velocity + " " + omega);
         // prediction:
         double[][] action = new double[][]{{velocity}, 
                                            {omega}};
@@ -191,9 +192,6 @@ public class Robot implements Comparable<Robot>{
         double[][] z = getZ();
         if (z != null) {
             double[][] K = multiplyMatrix(covariance, inverseDiag(addMatrix(covariance, Q,false)));
-
-            System.out.println(addMatrix(covariance, Q,false)[0][0]);
-
             state_guess = addMatrix(state_guess, multiplyMatrix(K, addMatrix(z, state_guess,true)),false);
             covariance = multiplyMatrix(addMatrix(I, K, true), covariance);
             
@@ -496,7 +494,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public double[] getVW(){
-        return new double[]{velocity, angle};
+        return new double[]{velocity, omega};
     }
 
     public void setVW(double v, double w){
