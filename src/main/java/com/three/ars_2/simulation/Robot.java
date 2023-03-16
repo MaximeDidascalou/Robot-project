@@ -41,15 +41,15 @@ public class Robot implements Comparable<Robot>{
     private double omega;
     private double[][] state_guess = new double[3][1];
     private double[][] state_true = new double[3][1];
-    private double[][] covariance = new double[][]{{0.1,0,0},
-                                                   {0,0.1,0},
-                                                   {0,0,0.1}};
+    private double[][] covariance = new double[][]{{0.00001,0,0},
+                                                   {0,0.00001,0},
+                                                   {0,0,0.001}};
     private double[][] R = new double[][]{{0.00001,0,0},
                                           {0,0.00001,0},
-                                          {0,0,0.00001}};
-    private double[][] Q = new double[][]{{0.5,0,0},
-                                          {0,0.5,0},
-                                          {0,0,0.5}};
+                                          {0,0,0.001}};
+    private double[][] Q = new double[][]{{0.001,0,0},
+                                          {0,0.001,0},
+                                          {0,0,0.01}};
     private double[][] landmarks;
 
     static {
@@ -165,11 +165,14 @@ public class Robot implements Comparable<Robot>{
         double[][] action = new double[][]{{velocity}, 
                                            {omega}};
 
-        double[][] B = new double[][]{{WORLD.getTimeStep() * Math.cos(angle), 0},
-                                      {WORLD.getTimeStep() * Math.sin(angle), 0},
-                                      {0, WORLD.getTimeStep()}};
+        double[][] B_true = new double[][]{{WORLD.getTimeStep() * Math.cos(angle), 0},
+                                           {WORLD.getTimeStep() * Math.sin(angle), 0},
+                                           {0, WORLD.getTimeStep()}};
+        double[][] B_guess = new double[][]{{WORLD.getTimeStep() * Math.cos(state_guess[2][0]), 0},
+                                            {WORLD.getTimeStep() * Math.sin(state_guess[2][0]), 0},
+                                            {0, WORLD.getTimeStep()}};
 
-        state_true = addMatrix(state_true, multiplyMatrix(B,action),false); // + noise
+        state_true = addMatrix(state_true, multiplyMatrix(B_true,action),false); // + noise
         java.util.Random r = new java.util.Random();
         for (int i = 0; i<3; i++){
             state_true[i][0] += (r.nextGaussian() * Math.sqrt(R[i][i]));
@@ -182,7 +185,7 @@ public class Robot implements Comparable<Robot>{
         state_true[0][0] = position[0];
         state_true[1][0] = position[1];
         
-        state_guess = addMatrix(state_guess, multiplyMatrix(B,action),false);
+        state_guess = addMatrix(state_guess, multiplyMatrix(B_guess,action),false);
         covariance = addMatrix(covariance, R,false);
         
         // correction:

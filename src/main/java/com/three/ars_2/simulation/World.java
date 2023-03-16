@@ -43,22 +43,29 @@ public class World {
     private double[][] createEnvironment() {
         List<double[]> environment = new ArrayList<>();
 
+        // Walls
         environment.add(new double[] {0, HEIGHT, WIDTH, HEIGHT});
         environment.add(new double[] {0, 0, WIDTH, 0});
         environment.add(new double[] {0, 0, 0, HEIGHT});
         environment.add(new double[] {WIDTH, 0, WIDTH, HEIGHT});
 
+        // Maze
+        environment.add(new double[] {0, HEIGHT/4, 3*WIDTH/4, HEIGHT/4});
+        environment.add(new double[] {3*WIDTH/4, HEIGHT/4, 3*WIDTH/4, HEIGHT/2});
+        environment.add(new double[] {WIDTH, 3*HEIGHT/4, WIDTH/2, 3*HEIGHT/4});
+        environment.add(new double[] {WIDTH/2, 3*HEIGHT/4, WIDTH/2, HEIGHT/2});
+        environment.add(new double[] {WIDTH/4, HEIGHT, WIDTH/4, HEIGHT/2});
 
-        environment.add(new double[] {2, 2, 2, 4});
-        environment.add(new double[] {2, 4, 4, 4});
-        environment.add(new double[] {4, 4, 4, 2});
-        environment.add(new double[] {4, 2, 2, 2});
+        // environment.add(new double[] {2, 2, 2, 4});
+        // environment.add(new double[] {2, 4, 4, 4});
+        // environment.add(new double[] {4, 4, 4, 2});
+        // environment.add(new double[] {4, 2, 2, 2});
 
-//        environment.add(new double[] {1, 1, 1, 3});
-//        environment.add(new double[] {1, 2, 3, 2});
-//        environment.add(new double[] {3, 1, 3, 3});
-//        environment.add(new double[] {2, 0, 2, 1});
-//        environment.add(new double[] {2, 3, 2, 4});
+    //    environment.add(new double[] {1, 1, 1, 3});
+    //    environment.add(new double[] {1, 2, 3, 2});
+    //    environment.add(new double[] {3, 1, 3, 3});
+    //    environment.add(new double[] {2, 0, 2, 1});
+    //    environment.add(new double[] {2, 3, 2, 4});
 
         return environment.toArray(new double[0][]);
     }
