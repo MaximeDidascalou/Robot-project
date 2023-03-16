@@ -479,8 +479,8 @@ public class Robot implements Comparable<Robot>{
             g.setStroke(GuiSettings.PATH_COLOR);
             double[][] path = path_true.toArray(new double[0][]);
             for (int i = 1; i < path.length; i++){
-                double x1 = path[i][0] * GuiSettings.SCALING;
-                double y1 = path[i][1] * GuiSettings.SCALING;
+                double x1 = path[i-1][0] * GuiSettings.SCALING;
+                double y1 = path[i-1][1] * GuiSettings.SCALING;
                 double x2 = path[i][0] * GuiSettings.SCALING;
                 double y2 = path[i][1] * GuiSettings.SCALING;
                 g.strokeLine(x1, y1, x2, y2);
@@ -490,8 +490,8 @@ public class Robot implements Comparable<Robot>{
             g.setStroke(GuiSettings.GUESS_PATH_COLOR);
             path = path_guess.toArray(new double[0][]);
             for (int i = 1; i < path.length; i++){
-                double x1 = path[i][0] * GuiSettings.SCALING;
-                double y1 = path[i][1] * GuiSettings.SCALING;
+                double x1 = path[i-1][0] * GuiSettings.SCALING;
+                double y1 = path[i-1][1] * GuiSettings.SCALING;
                 double x2 = path[i][0] * GuiSettings.SCALING;
                 double y2 = path[i][1] * GuiSettings.SCALING;
                 g.strokeLine(x1, y1, x2, y2);
