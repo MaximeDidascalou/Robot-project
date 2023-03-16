@@ -41,16 +41,21 @@ public class Robot implements Comparable<Robot>{
     private double omega;
     private double[][] state_guess = new double[3][1];
     private double[][] state_true = new double[3][1];
-    private double[][] covariance = new double[][]{{0.00001,0,0},
-                                                   {0,0.00001,0},
-                                                   {0,0,0.001}};
-    private double[][] R = new double[][]{{0.00001,0,0},
+    private double[][] covariance = new double[][]{{0.001,0,0},
+                                                   {0,0.001,0},
+                                                   {0,0,0.05}};
+    private double[][] R_true = new double[][]{{0.00001,0,0},
+                                          {0,0.00001,0},
+                                          {0,0,0.001}};
+    private double[][] R_estimated = new double[][]{{0.00001,0,0},
                                           {0,0.00001,0},
                                           {0,0,0.001}};
     private double[][] Q = new double[][]{{0.001,0,0},
                                           {0,0.001,0},
                                           {0,0,0.01}};
     private double[][] landmarks;
+    private List<double[]> path_true = new ArrayList<>();
+    private List<double[]> path_guess = new ArrayList<>();
 
     static {
         if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
@@ -92,6 +97,9 @@ public class Robot implements Comparable<Robot>{
         state_true = new double[][]{{position[0]},{position[1]},{angle}};
         velocity = 0.3;
         omega = 0.2;
+
+        path_true.add(new double[] {state_true[0][0], state_true[1][0]});
+        path_guess.add(new double[] {state_guess[0][0], state_guess[1][0]});
 
     }
 
@@ -160,7 +168,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void updateKalman(){
-        System.out.println(velocity + " " + omega);
+        // System.out.println(velocity + " " + omega);
         // prediction:
         double[][] action = new double[][]{{velocity}, 
                                            {omega}};
@@ -175,7 +183,7 @@ public class Robot implements Comparable<Robot>{
         state_true = addMatrix(state_true, multiplyMatrix(B_true,action),false); // + noise
         java.util.Random r = new java.util.Random();
         for (int i = 0; i<3; i++){
-            state_true[i][0] += (r.nextGaussian() * Math.sqrt(R[i][i]));
+            state_true[i][0] += (r.nextGaussian() * Math.sqrt(R_true[i][i]));
         }
         angle = state_true[2][0];
 
@@ -185,8 +193,9 @@ public class Robot implements Comparable<Robot>{
         state_true[0][0] = position[0];
         state_true[1][0] = position[1];
         
+        
         state_guess = addMatrix(state_guess, multiplyMatrix(B_guess,action),false);
-        covariance = addMatrix(covariance, R,false);
+        covariance = addMatrix(covariance, R_estimated,false);
         
         // correction:
         double[][] I = new double[][]{{1,0,0},
@@ -199,6 +208,8 @@ public class Robot implements Comparable<Robot>{
             covariance = multiplyMatrix(addMatrix(I, K, true), covariance);
             
         }
+        path_true.add(new double[] {state_true[0][0], state_true[1][0]});
+        path_guess.add(new double[] {state_guess[0][0], state_guess[1][0]});
         
     }
 
@@ -423,20 +434,36 @@ public class Robot implements Comparable<Robot>{
             double xK = state_guess[0][0] * GuiSettings.SCALING;
             double yK = state_guess[1][0] * GuiSettings.SCALING;
             double angleK = state_guess[2][0];
+            
 
-            //draw Kalman body
-            g.setFill(GuiSettings.K_ROBOT_COLOR);
-            g.fillOval(xK-radius,yK-radius,radius*2,radius*2);
-            g.setLineWidth(1);
+            // //draw Kalman body
+            // g.setFill(GuiSettings.K_ROBOT_COLOR);
+            // g.fillOval(xK-radius,yK-radius,radius*2,radius*2);
+            // g.setLineWidth(1);
 
             //draw Kalman head
-            Vector2D vK = new Vector2D(angleK);
-            vK.multiply(radius*1);
-    //        g.setFill(GuiSettings.DIRECTION_COLOR);
-    //        g.fillOval(x+v.x-radius/2,y+v.y-radius/2,2*radius/2,2*radius/2);
-            g.setStroke(GuiSettings.DIRECTION_COLOR);
-            g.setLineWidth(2.0);
-            g.strokeLine(xK, yK, xK + vK.x, yK + vK.y);
+            // Vector2D vK = new Vector2D(angleK);
+            // vK.multiply(radius*1);
+            // g.setStroke(GuiSettings.DIRECTION_COLOR);
+            // g.setLineWidth(2.0);
+            // g.strokeLine(xK, yK, xK + vK.x, yK + vK.y);
+
+            //draw x y guess distribution
+            double rx = Math.sqrt(covariance[0][0]) * GuiSettings.SCALING * 2; // *2 to show 2 standard deviations
+            double ry = Math.sqrt(covariance[1][1]) * GuiSettings.SCALING * 2;
+            g.setStroke(GuiSettings.K_ROBOT_COLOR);
+            g.strokeOval(xK-rx, yK-ry, 2*rx, 2*ry);
+            g.setLineWidth(1);
+
+            // draw angle guess distrbution
+            double angle_std = Math.sqrt(covariance[2][2]);
+            Vector2D vKl = new Vector2D(angleK - angle_std);
+            Vector2D vKr = new Vector2D(angleK + angle_std);
+            vKl.multiply(radius*1);
+            vKr.multiply(radius*1);
+            g.setFill(GuiSettings.DIRECTION_COLOR);
+            g.fillPolygon(new double[] {xK, xK+vKl.x, xK+vKr.x}, new double[] {yK, yK+vKl.y, yK+vKr.y}, 3);
+
 
             //draw sensor lines
             g.setStroke(GuiSettings.SENSOR_COLOR);
@@ -447,6 +474,30 @@ public class Robot implements Comparable<Robot>{
                 double y2 = landmarks[i][1] * GuiSettings.SCALING;
                 g.strokeLine(x, y, x2, y2);
             }
+
+            //draw true path
+            g.setStroke(GuiSettings.PATH_COLOR);
+            double[][] path = path_true.toArray(new double[0][]);
+            for (int i = 1; i < path.length; i++){
+                double x1 = path[i][0] * GuiSettings.SCALING;
+                double y1 = path[i][1] * GuiSettings.SCALING;
+                double x2 = path[i][0] * GuiSettings.SCALING;
+                double y2 = path[i][1] * GuiSettings.SCALING;
+                g.strokeLine(x1, y1, x2, y2);
+            }
+
+            //draw guess path
+            g.setStroke(GuiSettings.GUESS_PATH_COLOR);
+            path = path_guess.toArray(new double[0][]);
+            for (int i = 1; i < path.length; i++){
+                double x1 = path[i][0] * GuiSettings.SCALING;
+                double y1 = path[i][1] * GuiSettings.SCALING;
+                double x2 = path[i][0] * GuiSettings.SCALING;
+                double y2 = path[i][1] * GuiSettings.SCALING;
+                g.strokeLine(x1, y1, x2, y2);
+            }
+
+            
             
         }
     }

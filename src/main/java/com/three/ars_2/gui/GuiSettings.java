@@ -12,5 +12,8 @@ public class GuiSettings {
     public static final Color DIRECTION_COLOR = Color.web("#F4EBD9",1);
     public static final Color SENSOR_COLOR = Color.web("#FF5A5F",1);
     public static final Color WALL_COLOR = Color.web("F4EBD9", 1);
+    public static final Color PATH_COLOR = Color.web("#00FFFF", 1);
+    public static final Color GUESS_PATH_COLOR = Color.web("#A9A9A9", 1);
+
 
 }
