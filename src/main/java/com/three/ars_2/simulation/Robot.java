@@ -224,7 +224,7 @@ public class Robot implements Comparable<Robot>{
             }
         }
         landmarks = landmarksInRange.toArray(new double[0][]);
-        if (landmarksInRange.size() > 1){
+        if (landmarksInRange.size() > 2){
             java.util.Random r = new java.util.Random();
             for (int i = 0; i < 3; i++){
                 observed_state[i][0] = state_true[i][0] + (r.nextGaussian() * Math.sqrt(Q[i][i]));
@@ -497,6 +497,13 @@ public class Robot implements Comparable<Robot>{
                 g.strokeLine(x1, y1, x2, y2);
             }
 
+            // draw landmarks
+            g.setFill(GuiSettings.LANDMARK);
+            for (double[] landmark : WORLD.getLandmarks()) {
+                double x1 = (landmark[0] - 0.06) * GuiSettings.SCALING;
+                double y1 = (landmark[1] - 0.06) * GuiSettings.SCALING;
+                g.fillOval(x1, y1, 0.12* GuiSettings.SCALING, 0.1 * GuiSettings.SCALING);
+            }
             
             
         }
