@@ -1,5 +1,13 @@
-package com.three.ars_2.simulation;
+//////
+////
+//// Creates a world with obstacles and landmarks and defines methods to implement an evolutionary algorithm
+////
+//// This file was written by both Maxime Didascalou and Marco Rietjens
+////
+//////
 
+
+package com.three.ars_2.simulation;
 import com.three.ars_2.gui.GuiSettings;
 import javafx.scene.canvas.GraphicsContext;
 
@@ -40,6 +48,7 @@ public class World {
         this.robots = new Robot[0];
     }
 
+    // Creates environment by specifying the borders as well as internal walls
     private double[][] createEnvironment() {
         List<double[]> environment = new ArrayList<>();
 
@@ -70,6 +79,7 @@ public class World {
         return environment.toArray(new double[0][]);
     }
 
+    // Creates the landmarks based on the environment (at intersections of walls)
     private double[][] createLandmarks(){
         List<double[]> landmarks = new ArrayList<>(); // {x, y, signature}
         //landmarks.add(new double[] {ENVIRONMENT[0][0], ENVIRONMENT[0][1], 1});
@@ -95,6 +105,8 @@ public class World {
         return landmarks.toArray(new double[0][]);
     }
 
+    // Runs an evolutionary algorithm (settings specified in private final variables) to find best weights
+    // for controlling a robot such that it collets dust and doesn't run into walls. 
     public void runEvolution(Robot[] seedRobots) {
         DecimalFormat df = new DecimalFormat();
         timeStep = 1.0/4;
@@ -129,6 +141,7 @@ public class World {
         }
     }
 
+    // Initialise robots
     public void initialiseRobots(){
         robots = new Robot[NUMBER_ROBOTS];
         for (int i = 0; i < robots.length; i++) {
@@ -142,6 +155,7 @@ public class World {
         numRobotsInHistory = NUMBER_ROBOTS;
     }
 
+    // Run a simulation of the robots with their current weights and calculate their fitness
     public void runSimulation() {
         for (Robot robot: robots){
             double fitnessSum = 0;
@@ -163,6 +177,7 @@ public class World {
         Arrays.sort(robots);
     }
 
+    // Create a new generation of robots by selecting good performers and doing some crossover
     public void createNewGeneration(SelectionAlg selectionAlg, ANN.CrossoverAlg crossoverAlg, int generationSize, int elitismCount) {
         Robot[] newGeneration = new Robot[generationSize];
 
@@ -194,6 +209,7 @@ public class World {
         robots = newGeneration;
     }
 
+    // Selecting a robot based on selection method. 
     private Robot selectRobot(SelectionAlg selectionAlg){
         switch (selectionAlg){
             case RANK -> {
@@ -238,12 +254,14 @@ public class World {
         }
     }
 
+    // update all robots states
     public void updateRobots() {
         for (Robot robot : robots) {
             robot.update();
         }
     }
 
+    // Draw the environment 
     public void draw(GraphicsContext g){
         g.setFill(GuiSettings.BACKGROUND_COLOR);
         g.fillRect(0,0, getWidth()*GuiSettings.SCALING, getHeight()*GuiSettings.SCALING);
@@ -255,6 +273,8 @@ public class World {
             g.strokeLine(wall[0]*GuiSettings.SCALING, wall[1]*GuiSettings.SCALING, wall[2]*GuiSettings.SCALING, wall[3]*GuiSettings.SCALING);
         }
     }
+
+    // methods to get/set parameters
 
     public double getHeight() {
         return HEIGHT;

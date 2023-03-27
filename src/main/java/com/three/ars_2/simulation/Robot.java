@@ -1,5 +1,15 @@
-package com.three.ars_2.simulation;
+//////
+////
+//// Makes a robot instance (in both the (v,w) and (left vel, right vel) frameworks)
+//// (left vel, right vel) = (lv, rv) for rest of comments
+////
+//// Most of this file was written by Maxime Didascalou
+////
+//////
 
+
+
+package com.three.ars_2.simulation;
 import com.three.ars_2.gui.GuiSettings;
 import com.three.ars_2.gui.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -12,7 +22,7 @@ import java.util.List;
 
 public class Robot implements Comparable<Robot>{
     private static final int NUM_SENSORS = 12;; //number of sensors
-    private static final double MAX_SENSOR_DISTANCE = 1.5; //Maximum distance a sensor can see
+    private static final double MAX_SENSOR_DISTANCE = 2; //Maximum distance a sensor can see
     private static final double[] SENSOR_ANGLES = new double[NUM_SENSORS]; //Sensor angles, relative to bot angle
     private static final double DIAMETER = 0.5; //diameter of the robot
     private static final double WHEEL_DISTANCE = 0.4; //length between wheels
@@ -23,7 +33,7 @@ public class Robot implements Comparable<Robot>{
 
     private final World WORLD; //reference to the world it is in
     private final String NAME;
-    private final ANN ANN;
+    private final ANN ANN; // NN that controls it
 
     private double[] position = new double[2];
     private double angle;
@@ -33,8 +43,18 @@ public class Robot implements Comparable<Robot>{
     private int totalDustCollected, ticksInWall, totalTicks;
     private double summedTurningPenalty, fitness;
 
+    static {
+        if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
+            double angleInterval = 2*Math.PI/ NUM_SENSORS;
 
-    // KALMAN FILTER PARAMETERS;
+            for(int i = 0; i < NUM_SENSORS; i++) {
+                SENSOR_ANGLES[i] = i*angleInterval;
+            }
+        }
+    }
+
+
+    // KALMAN FILTER PARAMETERS (v,w);
 
     private static final boolean DRAWKALMAN = true;
     private double velocity;
@@ -47,25 +67,15 @@ public class Robot implements Comparable<Robot>{
     private double[][] R_true = new double[][]{{0.00001,0,0},
                                           {0,0.00001,0},
                                           {0,0,0.001}};
-    private double[][] R_estimated = new double[][]{{0.00001,0,0},
-                                          {0,0.00001,0},
-                                          {0,0,0.001}};
-    private double[][] Q = new double[][]{{0.001,0,0},
+    private double[][] R_estimated = new double[][]{{0.001,0,0},
                                           {0,0.001,0},
                                           {0,0,0.01}};
+    private double[][] Q = new double[][]{{0.1,0,0},
+                                          {0,0.1,0},
+                                          {0,0,0.3}};
     private double[][] landmarks;
     private List<double[]> path_true = new ArrayList<>();
     private List<double[]> path_guess = new ArrayList<>();
-
-    static {
-        if(NUM_SENSORS > 1 && SENSOR_ANGLES[1] == 0){
-            double angleInterval = 2*Math.PI/ NUM_SENSORS;
-
-            for(int i = 0; i < NUM_SENSORS; i++) {
-                SENSOR_ANGLES[i] = i*angleInterval;
-            }
-        }
-    }
 
     Robot(World world, String name, ANN ann){
         this.WORLD = world;
@@ -79,6 +89,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     public void initialise(double[] position, double angle){
+        // Initialise (lv, rv) parameters
         this.position[0] = position[0];
         this.position[1] = position[1];
         this.angle = angle;
@@ -91,7 +102,7 @@ public class Robot implements Comparable<Robot>{
         this.totalTicks = 0;
         this.fitness = Double.MIN_VALUE;
 
-        // KALMAN
+        // Initialise KALMAN filter parameters (v,w)
         
         state_guess = new double[][]{{position[0]},{position[1]},{angle}};
         state_true = new double[][]{{position[0]},{position[1]},{angle}};
@@ -103,6 +114,7 @@ public class Robot implements Comparable<Robot>{
 
     }
 
+    // update robot state using (lv, rv);
     public void update(){
         updateWheelSpeeds();
         updatePosition();
@@ -111,14 +123,14 @@ public class Robot implements Comparable<Robot>{
         totalTicks++;
     }
 
-    // update sensor values
+    // update sensor values ()
     private void updateSensorValues() {
         for (int i = 0; i < NUM_SENSORS; i++) {
             sensorValues[i] = calculateSensorValue(angle + SENSOR_ANGLES[i]);
         }
     }
 
-
+    // Calculate distance from sensor to wall
     private double calculateSensorValue(double sensorAngle) {
         double sensorX = position[0] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.cos(sensorAngle);
         double sensorY = position[1] + (MAX_SENSOR_DISTANCE + DIAMETER/2) * Math.sin(sensorAngle);
@@ -135,6 +147,7 @@ public class Robot implements Comparable<Robot>{
         return Math.sqrt(minimumSquared) - DIAMETER/2;
     }
 
+    // update wheel speeds (lv, rv)
     public void updateWheelSpeeds(){
         double[] adjustedSensorValues = new double[sensorValues.length];
         Arrays.setAll(adjustedSensorValues, i -> Math.exp(-5 * sensorValues[i] / MAX_SENSOR_DISTANCE));
@@ -145,7 +158,7 @@ public class Robot implements Comparable<Robot>{
     }
 
     
-
+    // update position (lv, rv)
     public void updatePosition(){
         double[] newPosition = new double[2];
 
@@ -167,6 +180,7 @@ public class Robot implements Comparable<Robot>{
         position = newPosition;
     }
 
+    // update true position and guessed position (kalman filter, (v, w))
     public void updateKalman(){
         // System.out.println(velocity + " " + omega);
         // prediction:
@@ -194,6 +208,7 @@ public class Robot implements Comparable<Robot>{
         state_true[1][0] = position[1];
         
         
+        // prediction
         state_guess = addMatrix(state_guess, multiplyMatrix(B_guess,action),false);
         covariance = addMatrix(covariance, R_estimated,false);
         
@@ -213,6 +228,7 @@ public class Robot implements Comparable<Robot>{
         
     }
 
+    // Get observation of current state
     private double[][] getZ(){
         List<double[]> landmarksInRange = new ArrayList<>();
         double[][] observed_state = new double[3][1];
@@ -235,6 +251,7 @@ public class Robot implements Comparable<Robot>{
         return observed_state;
     }
 
+    // Returns inverse of diagonal matrix
     private double[][] inverseDiag(double X[][]){
         int i;
         int row = X.length;
@@ -251,6 +268,7 @@ public class Robot implements Comparable<Robot>{
         return inverse;
     }
 
+    // Multiplies 2 matrices
     private double[][] multiplyMatrix(double M1[][], double M2[][]){
         int i, j, k;
 
@@ -276,6 +294,7 @@ public class Robot implements Comparable<Robot>{
         return product;
     }
 
+    // Adds (or subtracts) 2 matrices
     private double[][] addMatrix(double[][] M1, double[][] M2, boolean subtract){
         int i, j;
 
@@ -299,6 +318,7 @@ public class Robot implements Comparable<Robot>{
         return sum;
     }
 
+    // Updates dust collection
     private void updateDustCollection(){
         for(int i = Math.max((int)((position[0] - DIAMETER/2)/ WORLD.getDustResolution()), 0); i < Math.min((int)((position[0] + DIAMETER/2)/ WORLD.getDustResolution()) + 2, dustIsCollected.length); i++) {
             for (int j = Math.max((int)((position[1] - DIAMETER/2)/ WORLD.getDustResolution()),0); j < Math.min((int)((position[1] + DIAMETER/2)/ WORLD.getDustResolution()) + 2, dustIsCollected[i].length); j++) {
@@ -310,12 +330,15 @@ public class Robot implements Comparable<Robot>{
         }
     }
 
+    // distance between dust and position
     private double dustDistanceSquared(int i, int j) {
         double dustX = (i + 0.5)* WORLD.getDustResolution();
         double dustY = (j + 0.5)* WORLD.getDustResolution();
         return Math.pow(dustX - position[0],2) + Math.pow((dustY)-position[1],2);
     }
 
+    // Checks if robot hit obstacle
+    // If it did, updates position so that robot slides on obstacle
     private void collisionCheck(double[] newPosition){
         boolean collision = false;
         for (double[] wall : WORLD.getEnvironment()) {
@@ -334,6 +357,7 @@ public class Robot implements Comparable<Robot>{
         if(collision) ticksInWall++;
     }
 
+    // Finds point on a line (first 4 parameters )that is closest to another point (last 2 parameters)
     private static double[] closestPointOnLine(double x1, double y1, double x2, double y2, double pointX, double pointY) {
         double A = pointX - x1;
         double B = pointY - y1;
@@ -364,6 +388,7 @@ public class Robot implements Comparable<Robot>{
         return new double[]{xx, yy};
     }
 
+    // Returns intersection point of 2 lines (null if they don't intersect)
     private static double[] lineIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
         double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
         // Lines are parallel.
@@ -379,6 +404,8 @@ public class Robot implements Comparable<Robot>{
         return null;
     }
 
+    // Draws the robot and it's features based on usage
+    // For example in Kalman usage, it draws the landmarks and the guessed position as well.
     public void draw(GraphicsContext g){
         double radius = DIAMETER / 2 * GuiSettings.SCALING;
         double x = position[0] * GuiSettings.SCALING;
@@ -509,6 +536,9 @@ public class Robot implements Comparable<Robot>{
         }
     }
 
+
+    // The rest are methods to access or change Robot parameters and attributes.  
+
     public ANN getANN(){
         return ANN;
     }
@@ -576,6 +606,7 @@ public class Robot implements Comparable<Robot>{
         return angle;
     }
 
+    // To be able to sort a list of robots based on fitness
     @Override
     public int compareTo(Robot otherRobot) {
         return Double.compare(otherRobot.getFitness(),this.getFitness());

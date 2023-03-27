@@ -1,3 +1,11 @@
+//////
+////
+//// Makes ANN for controlling robot movement
+////
+//// This file was written by Marco Rietjens
+////
+//////
+
 package com.three.ars_2.simulation;
 
 import java.util.Arrays;
@@ -15,6 +23,7 @@ public class ANN {
         INTERMEDIATE
     }
 
+    // Creates the neural network based on given structure and wheter or not it should be recurrent. 
     //TODO make recurrence per layer setting -> boolean[]
     public ANN(int[] structure, boolean isRecurrent){
         this.IS_RECURRENT = isRecurrent;
@@ -40,28 +49,8 @@ public class ANN {
         }
     }
 
-//    public ANN(ANN ann){
-//        this.IS_RECURRENT = ann.IS_RECURRENT;
-//
-//        this.weights = new double[ann.weights.length][][];
-//        this.biases = new double[ann.biases.length][];
-//        this.activations = new double[ann.activations.length][];
-//
-//        for (int i = 0; i < ann.weights.length; i++) {
-//            weights[i] = new double[ann.weights[i].length][];
-//            biases[i] = new double[ann.biases[i].length];
-//            for (int j = 0; j < ann.weights[i].length; j++) {
-//                weights[i][j] = new double[ann.weights[i][j].length];
-//                System.arraycopy(ann.weights[i][j], 0, weights[i][j], 0, ann.weights[i][j].length);
-//                biases[i][j] = ann.biases[i][j];
-//            }
-//        }
-//
-//        for (int i = 0; i < activations.length; i++) {
-//            activations[i] = new double[ann.activations[i].length];
-//        }
-//    }
 
+    // Creates new child neural net based on 2 parents and specified crossover algorithm
     public ANN(CrossoverAlg crossoverAlg, ANN firstANN, ANN secondANN){
         this.IS_RECURRENT = firstANN.IS_RECURRENT;
 
@@ -86,6 +75,7 @@ public class ANN {
         }
     }
 
+    // gets new value from 2 other values based on specified algorithm
     private double getCrossoverValue(CrossoverAlg crossoverAlg, double first, double second){
         switch (crossoverAlg) {
             case UNIFORM -> {
@@ -103,7 +93,7 @@ public class ANN {
         }
     }
 
-    
+    // Forward pass of neural net
     public double[] evaluate(double[] sensorInputs){
         activations[0] = copy(sensorInputs);
 
@@ -115,6 +105,7 @@ public class ANN {
         return activations[activations.length-1];
     }
     
+    // Forward pass of single layer
     public double[] evaluateLayer(double[][] weights, double[] biases, double[] inputs){
         double[] layerActivations = new double[weights.length];
 
@@ -125,6 +116,7 @@ public class ANN {
         return layerActivations;
     }
     
+    // get ouput of a neuron
     private static double evaluateNeuron(double[] weights, double bias, double[] inputs){
         double activation = bias;
 
@@ -135,6 +127,7 @@ public class ANN {
         return sigmoid(activation);
     }
 
+    // mutate (random) neural net based on mutation rate without taking into account initial value
     public void mutate(double mutationRate){
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < weights[i].length; j++) {
@@ -150,6 +143,7 @@ public class ANN {
         }
     }
 
+    // mutate (random) neural net based on mutation rate by changing values based on where they are now
     public void mutate_relative(double mutationRate){
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < weights[i].length; j++) {
@@ -165,16 +159,19 @@ public class ANN {
         }
     }
 
+    // sigmoid activation function
     private static double sigmoid(double input){
         return 1/(1+Math.exp(-input));
     }
 
+    // return copy of array
     private static double[] copy(double[] array) {
         double[] newArray = new double[array.length];
         System.arraycopy(array, 0, newArray, 0, array.length);
         return newArray;
     }
 
+    // concatenate 2 arrays
     private static double[] concatenate(double[] first, double[] second){
         double[] newArray = new double[first.length + second.length];
         System.arraycopy(first, 0, newArray, 0, first.length);

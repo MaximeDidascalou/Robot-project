@@ -1,3 +1,11 @@
+//////
+////
+//// idk
+////
+//// This file was written by Cavid Karca
+////
+//////
+
 package com.three.ars_2.gui;
 
 import com.three.ars_2.simulation.Robot;
