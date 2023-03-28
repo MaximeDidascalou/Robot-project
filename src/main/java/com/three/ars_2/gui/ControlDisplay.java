@@ -1,6 +1,6 @@
 //////
 ////
-//// idk
+//// gui stuff
 ////
 //// This file was written by Cavid Karca
 ////
